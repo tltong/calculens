@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calculens</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f7fb;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .section {
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      background: #1f6fff;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+
+    button.secondary {
+      background: #e9edf5;
+      color: #222;
+    }
+
+    .output {
+      margin-top: 16px;
+      background: #111827;
+      color: #f9fafb;
+      border-radius: 10px;
+      padding: 14px;
+      white-space: pre-wrap;
+      min-height: 80px;
+      font-size: 13px;
+    }
+
+    a {
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Calculens</h1>
+
+  <p id="firebase-status">Initializing Firebase...</p>
+
+  <div class="section">
+    <a href="/pages/registration/registration.html">
+      <button>Go to Registration</button>
+    </a>
+
+    <a href="/pages/edit_profile/edit_profile.html">
+      <button class="secondary">Go to Edit Profile</button>
+    </a>
+  </div>
+
+  <div class="section">
+    <button id="test-write-btn">Test Write</button>
+    <button id="test-read-btn" class="secondary">Test Read</button>
+  </div>
+
+  <div class="section">
+    <strong>Output:</strong>
+    <div id="output-box" class="output">Waiting...</div>
+  </div>
+
+  <script type="module">
+    import { initFirebase } from "/utils/firebase/firebase.js";
+    import {
+      initFirestore,
+      addDocument,
+      getCollection
+    } from "/utils/firebase/firebase_ops.js";
+
+    const statusEl = document.getElementById("firebase-status");
+    const outputBox = document.getElementById("output-box");
+    const testWriteBtn = document.getElementById("test-write-btn");
+    const testReadBtn = document.getElementById("test-read-btn");
+
+    function setOutput(data) {
+      outputBox.textContent =
+        typeof data === "string" ? data : JSON.stringify(data, null, 2);
+    }
+
+    async function initializeApp() {
+      try {
+        initFirebase();
+        initFirestore();
+
+        statusEl.textContent = "✅ Firebase and Firestore initialized successfully";
+        setOutput("System ready.");
+      } catch (error) {
+        console.error(error);
+        statusEl.textContent = "❌ Firebase initialization failed";
+        setOutput(error.message);
+      }
+    }
+
+    async function testWrite() {
+      try {
+        setOutput("Writing test document...");
+
+        const docId = await addDocument("test", {
+          message: "Hello from Calculens",
+          createdAt: Date.now()
+        });
+
+        setOutput({
+          success: true,
+          message: "Document written successfully",
+          docId
+        });
+      } catch (error) {
+        console.error("[Test Write] Error:", error);
+        setOutput({
+          success: false,
+          error: error.message
+        });
+      }
+    }
+
+    async function testRead() {
+      try {
+        setOutput("Reading collection...");
+
+        const documents = await getCollection("test");
+
+        setOutput({
+          success: true,
+          count: documents.length,
+          documents
+        });
+      } catch (error) {
+        console.error("[Test Read] Error:", error);
+        setOutput({
+          success: false,
+          error: error.message
+        });
+      }
+    }
+
+    testWriteBtn.addEventListener("click", testWrite);
+    testReadBtn.addEventListener("click", testRead);
+
+    initializeApp();
+  </script>
+
+</body>
+</html>

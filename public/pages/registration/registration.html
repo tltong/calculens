@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>User Registration</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      margin-top: 0;
+      color: #666;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .status {
+      margin-bottom: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #eef3ff;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    input,
+    select,
+    button {
+      font: inherit;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d5dbe3;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: #4c7dff;
+      box-shadow: 0 0 0 3px rgba(76, 125, 255, 0.15);
+    }
+
+    input[readonly] {
+      background: #f3f4f6;
+      color: #555;
+    }
+
+    .helper-text {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-weight: 600;
+      background: #1f6fff;
+      color: white;
+    }
+
+    button.secondary {
+      background: #e9edf5;
+      color: #222;
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .output {
+      margin-top: 16px;
+      background: #111827;
+      color: #f9fafb;
+      border-radius: 10px;
+      padding: 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 13px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: #1f6fff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 14px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .actions-row {
+        flex-direction: column;
+      }
+
+      .actions-row button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="/">← Back to Home</a>
+
+    <div class="card">
+      <h1>User Registration</h1>
+      <p class="subtitle">
+        Create a user profile. All fields are required except body fat percentage.
+        If body fat percentage is left empty, it will be treated as unavailable.
+      </p>
+
+      <div id="app-status" class="status">Initializing...</div>
+
+      <form id="registration-form">
+        <div class="field">
+          <label for="name">Name</label>
+          <input id="name" name="name" type="text" required />
+        </div>
+
+        <div class="field">
+          <label for="phoneNumber">Phone Number</label>
+          <input
+            id="phoneNumber"
+            name="phoneNumber"
+            type="text"
+            placeholder="+60123456789"
+            required
+          />
+          <div id="phone-prefill-note" class="helper-text"></div>
+        </div>
+
+        <div class="field">
+          <label for="dob">Date of Birth</label>
+          <input id="dob" name="dob" type="date" required />
+        </div>
+
+        <div class="field">
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender" required>
+            <option value="">Select gender</option>
+            <option value="male">male</option>
+            <option value="female">female</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="gmt">GMT</label>
+          <select id="gmt" name="gmt" required>
+            <option value="">Select GMT</option>
+          </select>
+          <div id="detected-location" class="helper-text"></div>
+        </div>
+
+        <div class="field">
+          <label for="heightCm">Height (cm)</label>
+          <input id="heightCm" name="heightCm" type="number" min="0" step="0.1" required />
+        </div>
+
+        <div class="field">
+          <label for="weightKg">Weight (kg)</label>
+          <input id="weightKg" name="weightKg" type="number" min="0" step="0.1" required />
+        </div>
+
+        <div class="field">
+          <label for="stepsPerDay">Number of Steps per Day</label>
+          <input id="stepsPerDay" name="stepsPerDay" type="number" min="0" step="1" required />
+        </div>
+
+        <div class="field">
+          <label for="bodyFatPercentage">Body Fat Percentage</label>
+          <input
+            id="bodyFatPercentage"
+            name="bodyFatPercentage"
+            type="text"
+            placeholder="Optional"
+          />
+          <div class="helper-text">
+            Optional. Leave empty if not available.
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="exerciseFrequencyPerWeek">Exercise Frequency (times a week)</label>
+          <select id="exerciseFrequencyPerWeek" name="exerciseFrequencyPerWeek" required>
+            <option value="">Select frequency</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="exerciseDurationMinutes">Exercise Duration (minutes)</label>
+          <input
+            id="exerciseDurationMinutes"
+            name="exerciseDurationMinutes"
+            type="number"
+            min="0"
+            step="1"
+            required
+          />
+        </div>
+
+        <div class="field">
+          <label for="exerciseIntensity">Exercise Intensity</label>
+          <select id="exerciseIntensity" name="exerciseIntensity" required>
+            <option value="">Select intensity</option>
+          </select>
+        </div>
+
+        <div class="actions-row">
+          <button id="submit-btn" type="submit">Register</button>
+          <button id="fill-test-data-btn" type="button" class="secondary">
+            Fill Test Data
+          </button>
+        </div>
+      </form>
+
+      <pre id="output" class="output"></pre>
+    </div>
+  </div>
+
+  <script type="module" src="/pages/registration/registration.js"></script>
+</body>
+</html>
