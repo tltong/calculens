@@ -13,7 +13,8 @@ import {
   query,
   where,
   orderBy,
-  limit
+  limit,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { initFirebase, getFirebaseApp } from "/utils/firebase/firebase.js";
@@ -218,6 +219,224 @@ async function getOrderedDocuments(
   }
 }
 
+/**
+ * Add a new document to a direct subcollection.
+ * @param {string} parentCollectionName
+ * @param {string} parentDocId
+ * @param {string} subcollectionName
+ * @param {Object} data
+ * @returns {Promise<string>} document ID
+ */
+async function addSubcollectionDocument(
+  parentCollectionName,
+  parentDocId,
+  subcollectionName,
+  data
+) {
+  try {
+    const firestore = initFirestore();
+    const collectionRef = collection(
+      firestore,
+      parentCollectionName,
+      parentDocId,
+      subcollectionName
+    );
+    const docRef = await addDoc(collectionRef, data);
+    return docRef.id;
+  } catch (error) {
+    console.error("[Firestore] addSubcollectionDocument error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Read one document from a direct subcollection.
+ * @param {string} parentCollectionName
+ * @param {string} parentDocId
+ * @param {string} subcollectionName
+ * @param {string} docId
+ * @returns {Promise<Object|null>}
+ */
+async function getSubcollectionDocument(
+  parentCollectionName,
+  parentDocId,
+  subcollectionName,
+  docId
+) {
+  try {
+    const firestore = initFirestore();
+    const docRef = doc(
+      firestore,
+      parentCollectionName,
+      parentDocId,
+      subcollectionName,
+      docId
+    );
+    const snapshot = await getDoc(docRef);
+
+    if (!snapshot.exists()) {
+      return null;
+    }
+
+    return {
+      id: snapshot.id,
+      ...snapshot.data()
+    };
+  } catch (error) {
+    console.error("[Firestore] getSubcollectionDocument error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Listen to one document from a direct subcollection.
+ * @param {string} parentCollectionName
+ * @param {string} parentDocId
+ * @param {string} subcollectionName
+ * @param {string} docId
+ * @param {(documentData: Object|null) => void} onNext
+ * @param {(error: Error) => void} onError
+ * @returns {() => void}
+ */
+function listenToSubcollectionDocument(
+  parentCollectionName,
+  parentDocId,
+  subcollectionName,
+  docId,
+  onNext,
+  onError
+) {
+  try {
+    const firestore = initFirestore();
+    const docRef = doc(
+      firestore,
+      parentCollectionName,
+      parentDocId,
+      subcollectionName,
+      docId
+    );
+
+    return onSnapshot(
+      docRef,
+      (snapshot) => {
+        onNext(
+          snapshot.exists()
+            ? {
+                id: snapshot.id,
+                ...snapshot.data()
+              }
+            : null
+        );
+      },
+      onError
+    );
+  } catch (error) {
+    console.error("[Firestore] listenToSubcollectionDocument error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get ordered documents from a direct subcollection.
+ * @param {string} parentCollectionName
+ * @param {string} parentDocId
+ * @param {string} subcollectionName
+ * @param {string} orderField
+ * @param {"asc"|"desc"} direction
+ * @param {number|null} maxResults
+ * @returns {Promise<Array>}
+ */
+async function getOrderedSubcollectionDocuments(
+  parentCollectionName,
+  parentDocId,
+  subcollectionName,
+  orderField,
+  direction = "asc",
+  maxResults = null
+) {
+  try {
+    const firestore = initFirestore();
+    const collectionRef = collection(
+      firestore,
+      parentCollectionName,
+      parentDocId,
+      subcollectionName
+    );
+
+    const constraints = [orderBy(orderField, direction)];
+    if (maxResults !== null) {
+      constraints.push(limit(maxResults));
+    }
+
+    const q = query(collectionRef, ...constraints);
+    const snapshot = await getDocs(q);
+
+    return snapshot.docs.map((docItem) => ({
+      id: docItem.id,
+      ...docItem.data()
+    }));
+  } catch (error) {
+    console.error("[Firestore] getOrderedSubcollectionDocuments error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Listen to ordered documents from a direct subcollection.
+ * @param {string} parentCollectionName
+ * @param {string} parentDocId
+ * @param {string} subcollectionName
+ * @param {string} orderField
+ * @param {"asc"|"desc"} direction
+ * @param {number|null} maxResults
+ * @param {(documents: Array) => void} onNext
+ * @param {(error: Error) => void} onError
+ * @returns {() => void}
+ */
+function listenToOrderedSubcollectionDocuments(
+  parentCollectionName,
+  parentDocId,
+  subcollectionName,
+  orderField,
+  direction = "asc",
+  maxResults = null,
+  onNext,
+  onError
+) {
+  try {
+    const firestore = initFirestore();
+    const collectionRef = collection(
+      firestore,
+      parentCollectionName,
+      parentDocId,
+      subcollectionName
+    );
+
+    const constraints = [orderBy(orderField, direction)];
+    if (maxResults !== null) {
+      constraints.push(limit(maxResults));
+    }
+
+    const q = query(collectionRef, ...constraints);
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        onNext(
+          snapshot.docs.map((docItem) => ({
+            id: docItem.id,
+            ...docItem.data()
+          }))
+        );
+      },
+      onError
+    );
+  } catch (error) {
+    console.error("[Firestore] listenToOrderedSubcollectionDocuments error:", error);
+    throw error;
+  }
+}
+
 export {
   initFirestore,
   getFirestoreDB,
@@ -228,5 +447,10 @@ export {
   updateDocument,
   deleteDocument,
   queryDocuments,
-  getOrderedDocuments
+  getOrderedDocuments,
+  addSubcollectionDocument,
+  getSubcollectionDocument,
+  listenToSubcollectionDocument,
+  getOrderedSubcollectionDocuments,
+  listenToOrderedSubcollectionDocuments
 };

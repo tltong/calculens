@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calculens - Analysis Result</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+
+    .page {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    h2 {
+      margin: 24px 0 12px;
+      font-size: 18px;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: #666;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .status {
+      margin-bottom: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #eef3ff;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    button,
+    .button-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 600;
+      text-decoration: none;
+      background: #1f6fff;
+      color: white;
+      white-space: nowrap;
+    }
+
+    button.secondary,
+    .button-link.secondary {
+      background: #e9edf5;
+      color: #222;
+    }
+
+    .summary-grid,
+    .metrics-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .summary-item,
+    .metric-item,
+    .error-box {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+      background: #f8fafc;
+    }
+
+    .error-box {
+      display: none;
+      background: #fff5f5;
+      border-color: #f1c4c4;
+      color: #8a1f1f;
+      line-height: 1.5;
+    }
+
+    .item-label {
+      color: #666;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .item-value {
+      font-size: 16px;
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    @media (max-width: 820px) {
+      .summary-grid,
+      .metrics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page {
+        padding: 14px;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      .header-row {
+        display: grid;
+      }
+
+      .actions,
+      .actions button,
+      .actions .button-link {
+        width: 100%;
+      }
+
+      .summary-grid,
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="panel">
+      <div class="header-row">
+        <div>
+          <h1>Analysis Result</h1>
+          <p id="page-summary" class="subtitle">Loading analysis result...</p>
+        </div>
+
+        <div class="actions">
+          <a class="button-link secondary" href="/pages/admin/admin.html">Admin Users</a>
+          <button id="refresh-analysis-btn" type="button" class="secondary">Refresh</button>
+        </div>
+      </div>
+
+      <div id="app-status" class="status">Initializing...</div>
+
+      <div class="summary-grid">
+        <div class="summary-item">
+          <div class="item-label">Name</div>
+          <div id="user-name" class="item-value">-</div>
+        </div>
+        <div class="summary-item">
+          <div class="item-label">Phone Number</div>
+          <div id="user-phone" class="item-value">-</div>
+        </div>
+        <div class="summary-item">
+          <div class="item-label">Analysis Status</div>
+          <div id="analysis-status" class="item-value">-</div>
+        </div>
+        <div class="summary-item">
+          <div class="item-label">Completed</div>
+          <div id="analysis-completed-at" class="item-value">-</div>
+        </div>
+      </div>
+
+      <h2>Results</h2>
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <div class="item-label">Food Log Date</div>
+          <div id="result-food-log-date" class="item-value">-</div>
+        </div>
+        <div class="metric-item">
+          <div class="item-label">Photos Uploaded</div>
+          <div id="result-photo-count" class="item-value">-</div>
+        </div>
+        <div class="metric-item">
+          <div class="item-label">Counted Photos</div>
+          <div id="result-counted-photo-count" class="item-value">-</div>
+        </div>
+        <div class="metric-item">
+          <div class="item-label">Skipped Photos</div>
+          <div id="result-skipped-photo-count" class="item-value">-</div>
+        </div>
+        <div class="metric-item">
+          <div class="item-label">Total Calories Consumed</div>
+          <div id="result-total-calories" class="item-value">-</div>
+        </div>
+      </div>
+
+      <h2>Run Details</h2>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <div class="item-label">Analysis Run ID</div>
+          <div id="analysis-run-id" class="item-value">-</div>
+        </div>
+        <div class="summary-item">
+          <div class="item-label">Type</div>
+          <div id="analysis-type" class="item-value">-</div>
+        </div>
+        <div class="summary-item">
+          <div class="item-label">Requested</div>
+          <div id="analysis-requested-at" class="item-value">-</div>
+        </div>
+        <div class="summary-item">
+          <div class="item-label">Started</div>
+          <div id="analysis-started-at" class="item-value">-</div>
+        </div>
+      </div>
+
+      <div id="analysis-error" class="error-box"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/pages/admin/user_analysis.js?v=user-analysis-result-1"></script>
+</body>
+</html>
