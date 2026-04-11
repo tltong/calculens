@@ -123,6 +123,8 @@ async function processWhatsAppFoodPhoto({
       status: "stored_failed_food_log",
       to: normalizedPhoneNumber,
       userDocumentId: user.id,
+      foodLogDate: storageResult.foodLogDate,
+      foodLogEntryDocumentId: storageResult.foodLogEntryDocumentId,
       foodLogDocumentId: storageResult.foodLogDocumentId,
     };
   }
@@ -143,6 +145,8 @@ async function processWhatsAppFoodPhoto({
     status: "stored_food_log",
     to: normalizedPhoneNumber,
     userDocumentId: user.id,
+    foodLogDate: storageResult.foodLogDate,
+    foodLogEntryDocumentId: storageResult.foodLogEntryDocumentId,
     foodLogDocumentId: storageResult.foodLogDocumentId,
   };
 }

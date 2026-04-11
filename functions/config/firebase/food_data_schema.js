@@ -27,12 +27,17 @@ const CALORIE_RANGE_FIELDS = {
 const FOOD_LOG_FIELDS = {
   LOG_DATE: "logDate",
   LOG_TIME: "logTime",
+  GMT: "gmt",
   FOOD_DESCRIPTION: "foodDescription",
   CALORIE_CALCULATED: "calorieCalculated",
   PROCESSING_STATUS: "processingStatus",
   PROCESSING_ERROR_CODE: "processingErrorCode",
   CREATED_AT: "createdAt",
   UPDATED_AT: "updatedAt",
+};
+
+const FOOD_LOG_SUBCOLLECTIONS = {
+  ENTRIES: "entries",
 };
 
 const FOOD_LOG_PROCESSING_STATUS = {
@@ -45,6 +50,7 @@ const FOOD_LOG_PROCESSING_ERROR_CODES = {
 };
 
 const FOOD_LOG_CONFIG = {
+  DEFAULT_GMT: "GMT+08:00",
   DEFAULT_TIMEZONE: "Asia/Kuala_Lumpur",
   DATE_FORMAT_OPTIONS: {
     timeZone: "Asia/Kuala_Lumpur",
@@ -163,6 +169,7 @@ module.exports = {
   FOOD_ITEM_FIELDS,
   CALORIE_RANGE_FIELDS,
   FOOD_LOG_FIELDS,
+  FOOD_LOG_SUBCOLLECTIONS,
   FOOD_LOG_PROCESSING_STATUS,
   FOOD_LOG_PROCESSING_ERROR_CODES,
   FOOD_LOG_CONFIG,

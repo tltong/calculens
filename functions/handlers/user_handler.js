@@ -9,6 +9,7 @@ const {
 } = require("../config/firebase/firebase_user_schema");
 const {
   FOOD_LOG_FIELDS,
+  FOOD_LOG_SUBCOLLECTIONS,
   FOOD_LOG_CONFIG,
   FOOD_LOG_PROCESSING_STATUS,
 } = require("../config/firebase/food_data_schema");
@@ -101,7 +102,7 @@ async function buildUserRegistrationStatusReply(phoneNumber) {
  * Store food analysis under a user subcollection.
  *
  * Subcollection path:
- * users/{userDocumentId}/foodLogs/{autoId}
+ * users/{userDocumentId}/foodLogs/{logDate}/entries/{autoId}
  *
  * @param {Object} params
  * @param {string} params.userDocumentId
@@ -129,12 +130,15 @@ async function storeUserFoodAnalysis({
     throw new Error(`User not found for document ID: ${userDocumentId}`);
   }
 
-  const {logDate, logTime} = buildFoodLogDateTimeStrings();
+  const {logDate, logTime, gmt} = buildFoodLogDateTimeStrings({
+    gmt: existingUser[USER_FIELDS.GMT],
+  });
   const timestamp = firebaseOps.getTimestamp();
 
   const foodLogData = {
     [FOOD_LOG_FIELDS.LOG_DATE]: logDate,
     [FOOD_LOG_FIELDS.LOG_TIME]: logTime,
+    [FOOD_LOG_FIELDS.GMT]: gmt,
     [FOOD_LOG_FIELDS.FOOD_DESCRIPTION]: foodDescription,
     [FOOD_LOG_FIELDS.CALORIE_CALCULATED]: calorieCalculated,
     [FOOD_LOG_FIELDS.PROCESSING_STATUS]: processingStatus,
@@ -144,48 +148,145 @@ async function storeUserFoodAnalysis({
   };
 
   const db = firebaseOps.getFirestore();
-  const foodLogRef = await db
+  const foodLogDayRef = db
     .collection(USER_COLLECTION)
     .doc(userDocumentId)
     .collection(USER_SUBCOLLECTIONS.FOOD_LOGS)
+    .doc(logDate);
+
+  await ensureFoodLogDayDocument({
+    foodLogDayRef,
+    logDate,
+    gmt,
+    timestamp,
+  });
+
+  const foodLogRef = await foodLogDayRef
+    .collection(FOOD_LOG_SUBCOLLECTIONS.ENTRIES)
     .add(foodLogData);
 
   return {
     userDocumentId,
+    foodLogDate: logDate,
+    foodLogEntryDocumentId: foodLogRef.id,
     foodLogDocumentId: foodLogRef.id,
     foodLog: foodLogData,
   };
 }
 
 /**
- * Build formatted date/time strings for food logs using configured timezone.
+ * Build formatted date/time strings for food logs using the user's GMT offset.
  *
- * @returns {{logDate: string, logTime: string}}
+ * @param {Object} [params]
+ * @param {string} [params.gmt]
+ * @param {Date} [params.now]
+ * @returns {{logDate: string, logTime: string, gmt: string}}
  */
-function buildFoodLogDateTimeStrings() {
-  const now = new Date();
+function buildFoodLogDateTimeStrings({
+  gmt = FOOD_LOG_CONFIG.DEFAULT_GMT,
+  now = new Date(),
+} = {}) {
+  const normalizedGmt = normalizeGmtOffset(gmt);
+  const offsetMinutes = parseGmtOffsetMinutes(normalizedGmt);
+  const userLocalDate = new Date(now.getTime() + offsetMinutes * 60 * 1000);
 
-  const dateParts = new Intl.DateTimeFormat(
-    "en-CA",
-    FOOD_LOG_CONFIG.DATE_FORMAT_OPTIONS
-  ).formatToParts(now);
-
-  const timeParts = new Intl.DateTimeFormat(
-    "en-GB",
-    FOOD_LOG_CONFIG.TIME_FORMAT_OPTIONS
-  ).formatToParts(now);
-
-  const year = _getDateTimePartValue(dateParts, "year");
-  const month = _getDateTimePartValue(dateParts, "month");
-  const day = _getDateTimePartValue(dateParts, "day");
-  const hour = _getDateTimePartValue(timeParts, "hour");
-  const minute = _getDateTimePartValue(timeParts, "minute");
-  const second = _getDateTimePartValue(timeParts, "second");
+  const year = String(userLocalDate.getUTCFullYear());
+  const month = String(userLocalDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(userLocalDate.getUTCDate()).padStart(2, "0");
+  const hour = String(userLocalDate.getUTCHours()).padStart(2, "0");
+  const minute = String(userLocalDate.getUTCMinutes()).padStart(2, "0");
+  const second = String(userLocalDate.getUTCSeconds()).padStart(2, "0");
 
   return {
     logDate: `${year}-${month}-${day}`,
     logTime: `${hour}:${minute}:${second}`,
+    gmt: normalizedGmt,
   };
+}
+
+async function ensureFoodLogDayDocument({
+  foodLogDayRef,
+  logDate,
+  gmt,
+  timestamp,
+}) {
+  const foodLogDaySnapshot = await foodLogDayRef.get();
+  const foodLogDayData = {
+    [FOOD_LOG_FIELDS.LOG_DATE]: logDate,
+    [FOOD_LOG_FIELDS.GMT]: gmt,
+    [FOOD_LOG_FIELDS.UPDATED_AT]: timestamp,
+  };
+
+  if (!foodLogDaySnapshot.exists) {
+    foodLogDayData[FOOD_LOG_FIELDS.CREATED_AT] = timestamp;
+  }
+
+  await foodLogDayRef.set(foodLogDayData, {merge: true});
+}
+
+function normalizeGmtOffset(gmt) {
+  const parsedOffset = parseGmtOffset(gmt);
+
+  if (!parsedOffset) {
+    return FOOD_LOG_CONFIG.DEFAULT_GMT;
+  }
+
+  return formatGmtOffset(parsedOffset);
+}
+
+function parseGmtOffsetMinutes(gmt) {
+  const parsedOffset = parseGmtOffset(gmt) ||
+    parseGmtOffset(FOOD_LOG_CONFIG.DEFAULT_GMT);
+
+  const signMultiplier = parsedOffset.sign === "-" ? -1 : 1;
+  return signMultiplier * (parsedOffset.hours * 60 + parsedOffset.minutes);
+}
+
+function parseGmtOffset(gmt) {
+  if (!gmt || typeof gmt !== "string") {
+    return null;
+  }
+
+  const match = gmt.trim().match(/^GMT([+-])(\d{1,2}):(\d{2})$/i);
+
+  if (!match) {
+    return null;
+  }
+
+  const sign = match[1];
+  const hours = Number(match[2]);
+  const minutes = Number(match[3]);
+
+  if (
+    !Number.isInteger(hours) ||
+    !Number.isInteger(minutes) ||
+    hours < 0 ||
+    hours > 14 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return null;
+  }
+
+  if (hours === 14 && minutes !== 0) {
+    return null;
+  }
+
+  return {
+    sign,
+    hours,
+    minutes,
+  };
+}
+
+function formatGmtOffset({
+  sign,
+  hours,
+  minutes,
+}) {
+  return `GMT${sign}${String(hours).padStart(2, "0")}:${String(
+    minutes
+  ).padStart(2, "0")}`;
 }
 
 function _validateUserFoodAnalysisInput({
@@ -211,16 +312,6 @@ function _validateUserFoodAnalysisInput({
   }
 }
 
-/**
- * @param {Array<Intl.DateTimeFormatPart>} parts
- * @param {string} type
- * @returns {string}
- */
-function _getDateTimePartValue(parts, type) {
-  const matchedPart = parts.find((part) => part.type === type);
-  return matchedPart ? matchedPart.value : "";
-}
-
 module.exports = {
   normalizeWhatsAppNumber,
   isUserRegisteredByPhone,
@@ -228,4 +319,6 @@ module.exports = {
   buildUserRegistrationStatusReply,
   storeUserFoodAnalysis,
   buildFoodLogDateTimeStrings,
+  normalizeGmtOffset,
+  parseGmtOffsetMinutes,
 };

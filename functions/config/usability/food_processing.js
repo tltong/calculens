@@ -30,33 +30,20 @@ const FOOD_PROCESSING_MESSAGES = {
 
   TOTAL_PREFIX:
     "Total:",
+
+  DAILY_CALORIES_PROGRESS:
+    "Today: {totalCaloriesConsumed} / {totalCaloriesRequiredPerDay} kcal ({remainingCalories} kcal remaining).",
+
+  DAILY_CALORIES_EXCEEDED:
+    "Today: {totalCaloriesConsumed} / {totalCaloriesRequiredPerDay} kcal ({exceededCalories} kcal over).",
+
+  DAILY_CALORIES_TARGET_UNAVAILABLE:
+    "Today: {totalCaloriesConsumed} kcal consumed. Daily calorie target unavailable.",
+
+  DAILY_CALORIES_SUMMARY_UNAVAILABLE:
+    "Daily calorie summary unavailable.",
 };
-
-function buildSimpleFoodLine({
-  foodName,
-  quantityText,
-  grams,
-  calories,
-}) {
-  const gramsText = Number.isFinite(Number(grams)) ?
-    ` (~${Number(grams)}g)` :
-    "";
-
-  const calorieText = Number.isFinite(Number(calories)) ?
-    `${Math.round(Number(calories))} kcal` :
-    FOOD_PROCESSING_MESSAGES.CALORIES_UNCLEAR;
-
-  return `${foodName} - ${quantityText}${gramsText} - ${calorieText}`;
-}
-
-function buildTotalLine(totalCalories) {
-  return `${FOOD_PROCESSING_MESSAGES.TOTAL_PREFIX} ${Math.round(
-    Number(totalCalories)
-  )} kcal`;
-}
 
 module.exports = {
   FOOD_PROCESSING_MESSAGES,
-  buildSimpleFoodLine,
-  buildTotalLine,
 };

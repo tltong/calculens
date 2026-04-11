@@ -12,15 +12,15 @@ const {
   FOOD_ANALYSIS_FIELDS,
   FOOD_ITEM_FIELDS,
   FOOD_LOG_FIELDS,
+  FOOD_LOG_SUBCOLLECTIONS,
   FOOD_LOG_PROCESSING_STATUS,
   FOOD_LOG_PROCESSING_ERROR_CODES,
 } = require("../config/firebase/food_data_schema");
 const {
   FOOD_PROCESSING_MESSAGES,
-  buildSimpleFoodLine,
-  buildTotalLine,
 } = require("../config/usability/food_processing");
 const firebaseOps = require("../utils/firebase/firebase_ops");
+const foodProcessingHandler = require("../handlers/food_processing_handler");
 const {
   sendWhatsAppMessage,
 } = require("../utils/twilio/twilio_send_whatsapp");
@@ -33,7 +33,10 @@ const MAX_WHATSAPP_REPLY_LENGTH = 1500;
 
 const uploadedFoodNotify = onDocumentCreated(
   {
-    document: `${USER_COLLECTION}/{userDocumentId}/${USER_SUBCOLLECTIONS.FOOD_LOGS}/{foodLogDocumentId}`,
+    document:
+      `${USER_COLLECTION}/{userDocumentId}/` +
+      `${USER_SUBCOLLECTIONS.FOOD_LOGS}/{logDate}/` +
+      `${FOOD_LOG_SUBCOLLECTIONS.ENTRIES}/{foodLogEntryDocumentId}`,
     secrets: [
       TWILIO_ACCOUNT_SID,
       TWILIO_AUTH_TOKEN,
@@ -69,7 +72,17 @@ const uploadedFoodNotify = onDocumentCreated(
       return;
     }
 
-    const message = buildUploadedFoodReplyMessage({foodLogData});
+    const dailyCaloriesProgressLine = await buildDailyCaloriesProgressLineForLog({
+      foodLogData,
+      user,
+      userDocumentId,
+      logDate: event.params?.logDate,
+    });
+
+    const message = buildUploadedFoodReplyMessage({
+      foodLogData,
+      dailyCaloriesProgressLine,
+    });
 
     await sendWhatsAppMessage({
       accountSid: TWILIO_ACCOUNT_SID.value(),
@@ -81,7 +94,40 @@ const uploadedFoodNotify = onDocumentCreated(
   }
 );
 
-function buildUploadedFoodReplyMessage({foodLogData}) {
+async function buildDailyCaloriesProgressLineForLog({
+  foodLogData,
+  user,
+  userDocumentId,
+  logDate,
+}) {
+  const processingStatus = foodLogData?.[FOOD_LOG_FIELDS.PROCESSING_STATUS];
+
+  if (processingStatus !== FOOD_LOG_PROCESSING_STATUS.SUCCESS) {
+    return "";
+  }
+
+  try {
+    const dailyCaloriesResult =
+      await foodProcessingHandler.getUserTotalCaloriesConsumedForDay({
+        userDocumentId,
+        logDate,
+      });
+
+    return foodProcessingHandler.buildDailyCaloriesProgressLine({
+      totalCaloriesConsumed: dailyCaloriesResult.totalCaloriesConsumed,
+      totalCaloriesRequiredPerDay:
+        user?.[USER_FIELDS.TOTAL_CALORIES_REQUIRED_PER_DAY],
+    });
+  } catch (error) {
+    console.error("[uploadedFoodNotify] Daily calories lookup failed:", error);
+    return FOOD_PROCESSING_MESSAGES.DAILY_CALORIES_SUMMARY_UNAVAILABLE;
+  }
+}
+
+function buildUploadedFoodReplyMessage({
+  foodLogData,
+  dailyCaloriesProgressLine = "",
+}) {
   const processingStatus = foodLogData?.[FOOD_LOG_FIELDS.PROCESSING_STATUS];
   const processingErrorCode = foodLogData?.[FOOD_LOG_FIELDS.PROCESSING_ERROR_CODE];
 
@@ -102,12 +148,14 @@ function buildUploadedFoodReplyMessage({foodLogData}) {
   return buildFoodPhotoReplyMessage({
     foodDescription,
     calorieCalculated,
+    dailyCaloriesProgressLine,
   });
 }
 
 function buildFoodPhotoReplyMessage({
   foodDescription,
   calorieCalculated,
+  dailyCaloriesProgressLine = "",
 }) {
   const foodItems = Array.isArray(foodDescription?.[FOOD_ANALYSIS_FIELDS.ITEMS]) ?
     foodDescription[FOOD_ANALYSIS_FIELDS.ITEMS] :
@@ -148,7 +196,7 @@ function buildFoodPhotoReplyMessage({
     const calories = calorieItem?.[FOOD_ITEM_FIELDS.ESTIMATED_CALORIES];
 
     lines.push(
-      buildSimpleFoodLine({
+      foodProcessingHandler.buildSimpleFoodLine({
         foodName,
         quantityText,
         grams,
@@ -159,7 +207,16 @@ function buildFoodPhotoReplyMessage({
 
   if (Number.isFinite(Number(totalCalories))) {
     lines.push("");
-    lines.push(buildTotalLine(totalCalories));
+    lines.push(foodProcessingHandler.buildTotalLine(totalCalories));
+  }
+
+  const normalizedDailyCaloriesProgressLine = safeString(
+    dailyCaloriesProgressLine
+  );
+
+  if (normalizedDailyCaloriesProgressLine) {
+    lines.push("");
+    lines.push(normalizedDailyCaloriesProgressLine);
   }
 
   return truncateWhatsAppMessage(lines.join("\n"));
@@ -188,6 +245,7 @@ function safeString(value, fallback = "") {
 
 module.exports = {
   uploadedFoodNotify,
+  buildDailyCaloriesProgressLineForLog,
   buildUploadedFoodReplyMessage,
   buildFoodPhotoReplyMessage,
 };
