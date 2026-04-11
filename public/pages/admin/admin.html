@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calculens - Admin Users</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+
+    .page {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: #666;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .status {
+      margin-bottom: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #eef3ff;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    button,
+    .button-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 600;
+      text-decoration: none;
+      background: #1f6fff;
+      color: white;
+      white-space: nowrap;
+    }
+
+    button.secondary,
+    .button-link.secondary {
+      background: #e9edf5;
+      color: #222;
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      min-width: 860px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      vertical-align: middle;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #374151;
+      font-size: 12px;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .user-name {
+      font-weight: 700;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    .nowrap {
+      white-space: nowrap;
+    }
+
+    .empty-state {
+      display: none;
+      padding: 24px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #fff;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        padding: 14px;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      .header-row {
+        display: grid;
+      }
+
+      .actions {
+        justify-content: stretch;
+      }
+
+      .actions button,
+      .actions .button-link {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="panel">
+      <div class="header-row">
+        <div>
+          <h1>Registered Users</h1>
+          <p id="users-summary" class="subtitle">Loading users...</p>
+        </div>
+
+        <div class="actions">
+          <a class="button-link secondary" href="/">Home</a>
+          <button id="refresh-users-btn" type="button">Refresh</button>
+        </div>
+      </div>
+
+      <div id="app-status" class="status">Initializing...</div>
+
+      <div id="empty-state" class="empty-state">
+        No registered users found yet.
+      </div>
+
+      <div id="users-table-wrap" class="table-wrap hidden">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone Number</th>
+              <th>Gender</th>
+              <th>GMT</th>
+              <th>Weight</th>
+              <th>Calories</th>
+              <th>Updated</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/pages/admin/admin.js?v=admin-users-1"></script>
+</body>
+</html>

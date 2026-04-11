@@ -4,6 +4,7 @@ import { initFirebase } from "/utils/firebase/firebase.js";
 import {
   initFirestore,
   addDocument,
+  getCollection,
   queryDocuments,
   getDocument,
   updateDocument
@@ -283,6 +284,28 @@ async function getUserById(userId) {
 }
 
 /**
+ * Get all registered users, newest first when createdAt is available.
+ * @returns {Promise<Object[]>}
+ */
+async function getRegisteredUsers() {
+  const users = await getCollection(USER_COLLECTION);
+
+  return users.sort((firstUser, secondUser) => {
+    const firstCreatedAt = Number(firstUser?.[USER_FIELDS.CREATED_AT] ?? 0);
+    const secondCreatedAt = Number(secondUser?.[USER_FIELDS.CREATED_AT] ?? 0);
+
+    if (firstCreatedAt !== secondCreatedAt) {
+      return secondCreatedAt - firstCreatedAt;
+    }
+
+    const firstName = firstUser?.[USER_FIELDS.NAME] ?? "";
+    const secondName = secondUser?.[USER_FIELDS.NAME] ?? "";
+
+    return firstName.localeCompare(secondName);
+  });
+}
+
+/**
  * Add calculated calorie fields safely without breaking registration/update
  * @param {Object} userData
  * @returns {Object}
@@ -476,6 +499,7 @@ export {
   validateProfileMetricsInput,
   getUserByPhoneNumber,
   getUserById,
+  getRegisteredUsers,
   registerUser,
   updateUserProfileMetrics
 };
