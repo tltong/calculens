@@ -5,13 +5,13 @@ const {defineSecret} = require("firebase-functions/params");
 
 const {
   buildUserRegistrationStatusReply,
-  normalizeWhatsAppNumber
+  normalizeWhatsAppNumber,
 } = require("../handlers/user_handler");
 const {
-  sendWhatsAppMessage
+  sendWhatsAppMessage,
 } = require("../utils/twilio/twilio_send_whatsapp");
 const {
-  processWhatsAppFoodPhoto
+  processWhatsAppFoodPhoto,
 } = require("./whatsapp_photo_handler");
 
 const TWILIO_ACCOUNT_SID = defineSecret("TWILIO_ACCOUNT_SID");
@@ -25,8 +25,8 @@ exports.whatsappWebhook = onRequest(
       TWILIO_ACCOUNT_SID,
       TWILIO_AUTH_TOKEN,
       TWILIO_MESSAGING_SERVICE_SID,
-      GEMINI_API_KEY
-    ]
+      GEMINI_API_KEY,
+    ],
   },
   async (req, res) => {
     try {
@@ -56,7 +56,7 @@ exports.whatsappWebhook = onRequest(
           mediaContentType: mediaContentType0,
           twilioAccountSid: TWILIO_ACCOUNT_SID.value(),
           twilioAuthToken: TWILIO_AUTH_TOKEN.value(),
-          twilioMessagingServiceSid: TWILIO_MESSAGING_SERVICE_SID.value()
+          twilioMessagingServiceSid: TWILIO_MESSAGING_SERVICE_SID.value(),
         });
 
         res.status(200).send("OK");
@@ -72,7 +72,7 @@ exports.whatsappWebhook = onRequest(
         authToken: TWILIO_AUTH_TOKEN.value(),
         messagingServiceSid: TWILIO_MESSAGING_SERVICE_SID.value(),
         to: normalizedPhoneNumber,
-        body: replyMessage
+        body: replyMessage,
       });
 
       res.status(200).send("OK");

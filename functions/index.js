@@ -1,6 +1,9 @@
-const {setGlobalOptions} = require("firebase-functions");
+// functions/index.js
 
-setGlobalOptions({maxInstances: 10});
+const {whatsappWebhook} = require("./whatsapp/whatsappWebhook");
+const {newUserRegistration} = require("./triggers/new_user_registration");
+const {uploadedFoodNotify} = require("./triggers/uploaded_food_notify");
 
-exports.whatsappWebhook = require("./whatsapp/whatsappWebhook").whatsappWebhook;
-exports.newUserRegistration = require("./triggers/new_user_registration").newUserRegistration;
+exports.whatsappWebhook = whatsappWebhook;
+exports.newUserRegistration = newUserRegistration;
+exports.uploadedFoodNotify = uploadedFoodNotify;

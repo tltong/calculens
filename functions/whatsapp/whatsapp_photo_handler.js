@@ -11,16 +11,11 @@ const {
   sendWhatsAppMessage,
 } = require("../utils/twilio/twilio_send_whatsapp");
 const {
-  FOOD_ANALYSIS_FIELDS,
-  FOOD_ITEM_FIELDS,
+  FOOD_LOG_PROCESSING_STATUS,
 } = require("../config/firebase/food_data_schema");
 const {
   FOOD_PROCESSING_MESSAGES,
-  buildSimpleFoodLine,
-  buildTotalLine,
 } = require("../config/usability/food_processing");
-
-const MAX_WHATSAPP_REPLY_LENGTH = 1500;
 
 /**
  * Process a WhatsApp food photo:
@@ -29,13 +24,14 @@ const MAX_WHATSAPP_REPLY_LENGTH = 1500;
  * 3) download image from Twilio media URL
  * 4) run Gemini food extraction + calorie estimation
  * 5) store result under the user record
- * 6) send WhatsApp reply back to the sender
+ * 6) do not send success / non-food reply here
+ *    the Firestore trigger will notify asynchronously
  *
  * @param {Object} params
- * @param {string} params.from Twilio From value, e.g. "whatsapp:+60123456789"
- * @param {string|number} [params.numMedia=0] Twilio NumMedia value
- * @param {string} [params.mediaUrl] Twilio MediaUrl0 value
- * @param {string} [params.mediaContentType] Twilio MediaContentType0 value
+ * @param {string} params.from
+ * @param {string|number} [params.numMedia=0]
+ * @param {string} [params.mediaUrl]
+ * @param {string} [params.mediaContentType]
  * @param {string} params.twilioAccountSid
  * @param {string} params.twilioAuthToken
  * @param {string} params.twilioMessagingServiceSid
@@ -114,26 +110,20 @@ async function processWhatsAppFoodPhoto({
   });
 
   if (!processingResult?.success) {
-    const failureReplyMessage = buildProcessingFailureReplyMessage({
-      processingResult,
-    });
-
-    await sendWhatsAppMessage({
-      accountSid: twilioAccountSid,
-      authToken: twilioAuthToken,
-      messagingServiceSid: twilioMessagingServiceSid,
-      to: normalizedPhoneNumber,
-      body: failureReplyMessage,
+    const storageResult = await storeUserFoodAnalysis({
+      userDocumentId: user.id,
+      foodDescription: processingResult?.foodExtraction || null,
+      calorieCalculated: null,
+      processingStatus: FOOD_LOG_PROCESSING_STATUS.FAILED,
+      processingErrorCode: processingResult?.errorCode || null,
     });
 
     return {
       success: false,
-      status:
-        processingResult?.errorCode === "PHOTO_IS_NOT_FOOD" ?
-          "photo_is_not_food" :
-          "processing_failed",
+      status: "stored_failed_food_log",
       to: normalizedPhoneNumber,
-      message: failureReplyMessage,
+      userDocumentId: user.id,
+      foodLogDocumentId: storageResult.foodLogDocumentId,
     };
   }
 
@@ -144,30 +134,16 @@ async function processWhatsAppFoodPhoto({
     userDocumentId: user.id,
     foodDescription,
     calorieCalculated,
-  });
-
-  const replyMessage = buildFoodPhotoReplyMessage({
-    foodDescription,
-    calorieCalculated,
-  });
-
-  await sendWhatsAppMessage({
-    accountSid: twilioAccountSid,
-    authToken: twilioAuthToken,
-    messagingServiceSid: twilioMessagingServiceSid,
-    to: normalizedPhoneNumber,
-    body: replyMessage,
+    processingStatus: FOOD_LOG_PROCESSING_STATUS.SUCCESS,
+    processingErrorCode: null,
   });
 
   return {
     success: true,
-    status: "processed",
+    status: "stored_food_log",
     to: normalizedPhoneNumber,
     userDocumentId: user.id,
     foodLogDocumentId: storageResult.foodLogDocumentId,
-    foodDescription,
-    calorieCalculated,
-    replyMessage,
   };
 }
 
@@ -256,102 +232,8 @@ async function downloadTwilioMedia({
   return Buffer.from(arrayBuffer);
 }
 
-function buildProcessingFailureReplyMessage({
-  processingResult,
-}) {
-  if (processingResult?.errorCode === "PHOTO_IS_NOT_FOOD") {
-    return FOOD_PROCESSING_MESSAGES.PHOTO_NOT_FOOD;
-  }
-
-  return FOOD_PROCESSING_MESSAGES.PROCESSING_FAILED;
-}
-
-function buildFoodPhotoReplyMessage({
-  foodDescription,
-  calorieCalculated,
-}) {
-  const foodItems = Array.isArray(foodDescription?.[FOOD_ANALYSIS_FIELDS.ITEMS]) ?
-    foodDescription[FOOD_ANALYSIS_FIELDS.ITEMS] :
-    [];
-
-  const calorieItems = Array.isArray(
-    calorieCalculated?.[FOOD_ANALYSIS_FIELDS.ITEMS]
-  ) ?
-    calorieCalculated[FOOD_ANALYSIS_FIELDS.ITEMS] :
-    [];
-
-  const totalCalories =
-    calorieCalculated?.[FOOD_ANALYSIS_FIELDS.TOTAL_ESTIMATED_CALORIES];
-
-  const lines = [];
-  const maxLength = Math.max(foodItems.length, calorieItems.length);
-
-  for (let i = 0; i < maxLength; i++) {
-    const foodItem = foodItems[i] || {};
-    const calorieItem = calorieItems[i] || {};
-
-    const foodName = safeString(
-      foodItem?.[FOOD_ITEM_FIELDS.NAME] ||
-        calorieItem?.[FOOD_ITEM_FIELDS.NAME],
-      FOOD_PROCESSING_MESSAGES.UNKNOWN_ITEM
-    );
-
-    const quantityText = safeString(
-      foodItem?.[FOOD_ITEM_FIELDS.QUANTITY_TEXT] ||
-        calorieItem?.[FOOD_ITEM_FIELDS.QUANTITY_TEXT],
-      FOOD_PROCESSING_MESSAGES.QUANTITY_UNCLEAR
-    );
-
-    const grams =
-      foodItem?.[FOOD_ITEM_FIELDS.ESTIMATED_GRAMS] ||
-      calorieItem?.[FOOD_ITEM_FIELDS.ESTIMATED_GRAMS];
-
-    const calories = calorieItem?.[FOOD_ITEM_FIELDS.ESTIMATED_CALORIES];
-
-    lines.push(
-      buildSimpleFoodLine({
-        foodName,
-        quantityText,
-        grams,
-        calories,
-      })
-    );
-  }
-
-  if (Number.isFinite(Number(totalCalories))) {
-    lines.push("");
-    lines.push(buildTotalLine(totalCalories));
-  }
-
-  return truncateWhatsAppMessage(lines.join("\n"));
-}
-
-function truncateWhatsAppMessage(message) {
-  if (!message || typeof message !== "string") {
-    return "";
-  }
-
-  if (message.length <= MAX_WHATSAPP_REPLY_LENGTH) {
-    return message;
-  }
-
-  return `${message.slice(0, MAX_WHATSAPP_REPLY_LENGTH - 3)}...`;
-}
-
-function safeString(value, fallback = "") {
-  if (value === null || value === undefined) {
-    return fallback;
-  }
-
-  const normalizedValue = String(value).trim();
-  return normalizedValue || fallback;
-}
-
 module.exports = {
   processWhatsAppFoodPhoto,
   validateIncomingPhotoMedia,
   downloadTwilioMedia,
-  buildProcessingFailureReplyMessage,
-  buildFoodPhotoReplyMessage,
-  truncateWhatsAppMessage,
 };

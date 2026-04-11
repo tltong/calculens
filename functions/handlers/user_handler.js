@@ -5,15 +5,16 @@ const {
   USER_COLLECTION,
   USER_FIELDS,
   USER_SUBCOLLECTIONS,
-  buildUserRegistrationLink
+  buildUserRegistrationLink,
 } = require("../config/firebase/firebase_user_schema");
 const {
   FOOD_LOG_FIELDS,
-  FOOD_LOG_CONFIG
+  FOOD_LOG_CONFIG,
+  FOOD_LOG_PROCESSING_STATUS,
 } = require("../config/firebase/food_data_schema");
 const {
   USER_REGISTRATION_MESSAGES,
-  buildUserNotRegisteredMessage
+  buildUserNotRegisteredMessage,
 } = require("../config/usability/user_registration");
 
 /**
@@ -92,7 +93,7 @@ async function buildUserRegistrationStatusReply(phoneNumber) {
   const registrationLink = buildUserRegistrationLink(normalizedPhoneNumber);
 
   return buildUserNotRegisteredMessage({
-    registrationLink
+    registrationLink,
   });
 }
 
@@ -102,27 +103,24 @@ async function buildUserRegistrationStatusReply(phoneNumber) {
  * Subcollection path:
  * users/{userDocumentId}/foodLogs/{autoId}
  *
- * Stored fields are intentionally ordered as:
- * 1) date
- * 2) time
- * 3) food description
- * 4) calorie calculated
- *
  * @param {Object} params
  * @param {string} params.userDocumentId
- * @param {Object|string|Array} params.foodDescription
- * @param {Object|number|string} params.calorieCalculated
+ * @param {Object|string|Array|null} [params.foodDescription]
+ * @param {Object|number|string|null} [params.calorieCalculated]
+ * @param {string} params.processingStatus
+ * @param {string|null} [params.processingErrorCode]
  * @returns {Promise<Object>}
  */
 async function storeUserFoodAnalysis({
   userDocumentId,
-  foodDescription,
-  calorieCalculated
+  foodDescription = null,
+  calorieCalculated = null,
+  processingStatus,
+  processingErrorCode = null,
 }) {
   _validateUserFoodAnalysisInput({
     userDocumentId,
-    foodDescription,
-    calorieCalculated
+    processingStatus,
   });
 
   const existingUser = await firebaseOps.readDocument(USER_COLLECTION, userDocumentId);
@@ -132,14 +130,17 @@ async function storeUserFoodAnalysis({
   }
 
   const {logDate, logTime} = buildFoodLogDateTimeStrings();
+  const timestamp = firebaseOps.getTimestamp();
 
   const foodLogData = {
     [FOOD_LOG_FIELDS.LOG_DATE]: logDate,
     [FOOD_LOG_FIELDS.LOG_TIME]: logTime,
     [FOOD_LOG_FIELDS.FOOD_DESCRIPTION]: foodDescription,
     [FOOD_LOG_FIELDS.CALORIE_CALCULATED]: calorieCalculated,
-    [FOOD_LOG_FIELDS.CREATED_AT]: firebaseOps.getTimestamp(),
-    [FOOD_LOG_FIELDS.UPDATED_AT]: firebaseOps.getTimestamp()
+    [FOOD_LOG_FIELDS.PROCESSING_STATUS]: processingStatus,
+    [FOOD_LOG_FIELDS.PROCESSING_ERROR_CODE]: processingErrorCode,
+    [FOOD_LOG_FIELDS.CREATED_AT]: timestamp,
+    [FOOD_LOG_FIELDS.UPDATED_AT]: timestamp,
   };
 
   const db = firebaseOps.getFirestore();
@@ -152,7 +153,7 @@ async function storeUserFoodAnalysis({
   return {
     userDocumentId,
     foodLogDocumentId: foodLogRef.id,
-    foodLog: foodLogData
+    foodLog: foodLogData,
   };
 }
 
@@ -183,39 +184,30 @@ function buildFoodLogDateTimeStrings() {
 
   return {
     logDate: `${year}-${month}-${day}`,
-    logTime: `${hour}:${minute}:${second}`
+    logTime: `${hour}:${minute}:${second}`,
   };
 }
 
-/**
- * @param {Object} params
- * @param {string} params.userDocumentId
- * @param {*} params.foodDescription
- * @param {*} params.calorieCalculated
- */
 function _validateUserFoodAnalysisInput({
   userDocumentId,
-  foodDescription,
-  calorieCalculated
+  processingStatus,
 }) {
   if (!userDocumentId || typeof userDocumentId !== "string") {
     throw new Error("userDocumentId is required and must be a string.");
   }
 
   if (
-    foodDescription === null ||
-    foodDescription === undefined ||
-    (typeof foodDescription === "string" && !foodDescription.trim())
+    !processingStatus ||
+    typeof processingStatus !== "string"
   ) {
-    throw new Error("foodDescription is required.");
+    throw new Error("processingStatus is required and must be a string.");
   }
 
   if (
-    calorieCalculated === null ||
-    calorieCalculated === undefined ||
-    (typeof calorieCalculated === "string" && !calorieCalculated.trim())
+    processingStatus !== FOOD_LOG_PROCESSING_STATUS.SUCCESS &&
+    processingStatus !== FOOD_LOG_PROCESSING_STATUS.FAILED
   ) {
-    throw new Error("calorieCalculated is required.");
+    throw new Error("processingStatus is invalid.");
   }
 }
 
@@ -235,5 +227,5 @@ module.exports = {
   getUserByPhone,
   buildUserRegistrationStatusReply,
   storeUserFoodAnalysis,
-  buildFoodLogDateTimeStrings
+  buildFoodLogDateTimeStrings,
 };
