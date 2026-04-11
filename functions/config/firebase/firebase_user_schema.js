@@ -32,7 +32,9 @@ const USER_SUBCOLLECTIONS = {
 
 const FIREBASE_USER_LINKS = {
   REGISTRATION_URL_TEMPLATE:
-    "https://calculens-35ead.web.app/pages/registration/registration.html?p{phoneNumber}"
+    "https://calculens-35ead.web.app/pages/registration/registration.html?p{phoneNumber}",
+  EDIT_PROFILE_URL_TEMPLATE:
+    "https://calculens-35ead.web.app/pages/edit_profile/edit_profile.html?userId={userDocumentId}"
 };
 
 /**
@@ -49,10 +51,25 @@ function buildUserRegistrationLink(phoneNumber) {
   );
 }
 
+/**
+ * Build edit profile link for a given user document ID
+ * @param {string} userDocumentId
+ * @returns {string}
+ */
+function buildUserEditProfileLink(userDocumentId) {
+  const normalizedUserDocumentId = (userDocumentId || "").trim();
+
+  return FIREBASE_USER_LINKS.EDIT_PROFILE_URL_TEMPLATE.replace(
+    "{userDocumentId}",
+    encodeURIComponent(normalizedUserDocumentId)
+  );
+}
+
 module.exports = {
   USER_COLLECTION,
   USER_FIELDS,
   USER_SUBCOLLECTIONS,
   FIREBASE_USER_LINKS,
-  buildUserRegistrationLink
+  buildUserRegistrationLink,
+  buildUserEditProfileLink
 };

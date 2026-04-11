@@ -50,14 +50,6 @@
       line-height: 1.5;
     }
 
-    .actions-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 8px;
-      margin-bottom: 16px;
-    }
-
     form {
       display: grid;
       gap: 14px;
@@ -126,17 +118,6 @@
       cursor: not-allowed;
     }
 
-    .output {
-      margin-top: 16px;
-      background: #111827;
-      color: #f9fafb;
-      border-radius: 10px;
-      padding: 14px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-size: 13px;
-    }
-
     .meta-grid {
       display: grid;
       gap: 12px;
@@ -168,14 +149,6 @@
       font-size: 18px;
     }
 
-    .back-link {
-      display: inline-block;
-      margin-bottom: 16px;
-      color: #1f6fff;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
     @media (max-width: 640px) {
       .page {
         padding: 14px;
@@ -189,45 +162,17 @@
         grid-template-columns: 1fr;
       }
 
-      .actions-row {
-        flex-direction: column;
-      }
-
-      .actions-row button {
-        width: 100%;
-      }
     }
   </style>
 </head>
 <body>
   <div class="page">
-    <a class="back-link" href="/">← Back to Home</a>
 
     <div class="card">
       <h1>Edit Profile</h1>
-      <p class="subtitle">
-        This page reads the user document ID from the URL query string and updates the editable fields.
-        All fields below are required except body fat percentage. If body fat percentage is blank, it will be treated as unavailable.
-      </p>
+      
 
       <div id="app-status" class="status">Initializing...</div>
-
-      <div class="field">
-        <label for="user-id">User Document ID</label>
-        <input
-          id="user-id"
-          name="userId"
-          type="text"
-          placeholder="URL must include ?userId=..."
-          autocomplete="off"
-          readonly
-        />
-      </div>
-
-      <div class="actions-row">
-        <button id="load-user-btn" type="button">Load User</button>
-        <button id="fill-sample-btn" type="button" class="secondary">Fill Sample Data</button>
-      </div>
 
       <div class="meta-grid">
         <div class="meta-card">
@@ -245,6 +190,10 @@
         <div class="meta-card">
           <div class="meta-label">GMT</div>
           <div id="user-gmt" class="meta-value">-</div>
+        </div>
+        <div class="meta-card">
+          <div class="meta-label">Height</div>
+          <div id="user-height" class="meta-value">-</div>
         </div>
       </div>
 
@@ -274,7 +223,7 @@
             type="text"
             placeholder="Optional"
           />
-          <div class="helper-text">Optional. Leave empty if not available.</div>
+          <div class="helper-text">Optional (but recommended). Leave empty if not available.</div>
         </div>
 
         <div class="field">
@@ -299,16 +248,11 @@
           <select id="exerciseIntensity" name="exerciseIntensity" required></select>
         </div>
 
-        <button id="save-btn" type="submit" disabled>Save Profile Update</button>
+        <button id="save-btn" type="button" disabled>Save Profile Update</button>
       </form>
-
-      <div>
-        <h2 class="section-title">Output</h2>
-        <div id="output" class="output">Waiting...</div>
-      </div>
     </div>
   </div>
 
-  <script type="module" src="/pages/edit_profile/edit_profile.js"></script>
+  <script type="module" src="/pages/edit_profile/edit_profile.js?v=clean-profile-ui-2"></script>
 </body>
 </html>

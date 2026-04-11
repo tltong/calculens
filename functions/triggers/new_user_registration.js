@@ -5,7 +5,8 @@ const {defineSecret} = require("firebase-functions/params");
 
 const {
   USER_COLLECTION,
-  USER_FIELDS
+  USER_FIELDS,
+  buildUserEditProfileLink
 } = require("../config/firebase/firebase_user_schema");
 
 const {
@@ -43,6 +44,7 @@ exports.newUserRegistration = onDocumentCreated(
       }
 
       const userData = snapshot.data();
+      const userDocumentId = event.params?.userId || snapshot.id;
 
       const phoneNumber = userData[USER_FIELDS.PHONE_NUMBER];
 
@@ -53,7 +55,10 @@ exports.newUserRegistration = onDocumentCreated(
 
       console.log("[newUserRegistration] New user:", phoneNumber);
 
-      const message = buildUserWelcomeMessage();
+      const editProfileLink = buildUserEditProfileLink(userDocumentId);
+      const message = buildUserWelcomeMessage({
+        editProfileLink
+      });
 
       await sendWhatsAppMessage({
         accountSid: TWILIO_ACCOUNT_SID.value(),

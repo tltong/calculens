@@ -7,7 +7,10 @@ const USER_REGISTRATION_MESSAGES = {
   USER_REGISTERED: "user registered",
 
   USER_WELCOME_TEMPLATE:
-    "Welcome to Calculens 🎉\n\nYou're successfully registered.\nYou can now start tracking your calories."
+    "Welcome 🎉\n\nYou're successfully registered.\nYou can now start tracking your calories.  Usage instruction: Just upload photos of your food.",
+
+  USER_EDIT_PROFILE_LINK_TEMPLATE:
+    "Edit your profile here:\n{editProfileLink}"
 };
 
 /**
@@ -23,8 +26,14 @@ function buildUserNotRegisteredMessage({registrationLink}) {
 /**
  * Build welcome message
  */
-function buildUserWelcomeMessage() {
-  return USER_REGISTRATION_MESSAGES.USER_WELCOME_TEMPLATE;
+function buildUserWelcomeMessage({editProfileLink = ""} = {}) {
+  const editProfileLine =
+    USER_REGISTRATION_MESSAGES.USER_EDIT_PROFILE_LINK_TEMPLATE.replace(
+      "{editProfileLink}",
+      editProfileLink
+    );
+
+  return `${USER_REGISTRATION_MESSAGES.USER_WELCOME_TEMPLATE}\n\n${editProfileLine}`;
 }
 
 module.exports = {

@@ -13,17 +13,14 @@ import {
 } from "/config/firebase/firebase_user_schema.js";
 
 const appStatusEl = document.getElementById("app-status");
-const userIdEl = document.getElementById("user-id");
-const loadUserBtn = document.getElementById("load-user-btn");
-const fillSampleBtn = document.getElementById("fill-sample-btn");
 const formEl = document.getElementById("edit-profile-form");
 const saveBtn = document.getElementById("save-btn");
-const outputEl = document.getElementById("output");
 
 const userPhoneEl = document.getElementById("user-phone");
 const userDobEl = document.getElementById("user-dob");
 const userGenderEl = document.getElementById("user-gender");
 const userGmtEl = document.getElementById("user-gmt");
+const userHeightEl = document.getElementById("user-height");
 
 const nameEl = document.getElementById("name");
 const weightKgEl = document.getElementById("weightKg");
@@ -35,6 +32,9 @@ const exerciseIntensityEl = document.getElementById("exerciseIntensity");
 
 let loadedUser = null;
 
+const PROFILE_UPDATE_COMPLETE_PAGE_PATH =
+  "/pages/edit_profile/profile_update_complete.html";
+
 function setTextSafely(element, value) {
   if (element) {
     element.textContent = value;
@@ -45,15 +45,6 @@ function setValueSafely(element, value) {
   if (element) {
     element.value = value;
   }
-}
-
-function setOutput(data) {
-  if (!outputEl) {
-    return;
-  }
-
-  outputEl.textContent =
-    typeof data === "string" ? data : JSON.stringify(data, null, 2);
 }
 
 function setStatus(message) {
@@ -71,9 +62,7 @@ function setFormEnabled(enabled) {
 
   const elements = formEl.querySelectorAll("input, select, button");
   elements.forEach((element) => {
-    if (element.id !== "user-id") {
-      element.disabled = !enabled;
-    }
+    element.disabled = !enabled;
   });
 
   if (saveBtn) {
@@ -84,6 +73,24 @@ function setFormEnabled(enabled) {
 function getUserIdFromUrl() {
   const params = new URLSearchParams(window.location.search);
   return params.get("userId")?.trim() ?? "";
+}
+
+function getCurrentUserId() {
+  return getUserIdFromUrl();
+}
+
+function formatHeightCm(value) {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  const heightCm = Number(value);
+
+  if (!Number.isFinite(heightCm)) {
+    return "-";
+  }
+
+  return `${heightCm} cm`;
 }
 
 function populateSelectOptions() {
@@ -111,6 +118,7 @@ function clearUserHeader() {
   setTextSafely(userDobEl, "-");
   setTextSafely(userGenderEl, "-");
   setTextSafely(userGmtEl, "-");
+  setTextSafely(userHeightEl, "-");
 }
 
 function populateUserHeader(user) {
@@ -118,6 +126,7 @@ function populateUserHeader(user) {
   setTextSafely(userDobEl, user?.[USER_FIELDS.DOB] ?? "-");
   setTextSafely(userGenderEl, user?.[USER_FIELDS.GENDER] ?? "-");
   setTextSafely(userGmtEl, user?.[USER_FIELDS.GMT] ?? "-");
+  setTextSafely(userHeightEl, formatHeightCm(user?.[USER_FIELDS.HEIGHT_CM]));
 }
 
 function clearForm() {
@@ -161,8 +170,44 @@ function getFormData() {
   };
 }
 
+function buildProfileUpdateCompletePageUrl({
+  userId,
+  user,
+}) {
+  const completePageUrl = new URL(
+    PROFILE_UPDATE_COMPLETE_PAGE_PATH,
+    window.location.origin
+  );
+
+  if (userId) {
+    completePageUrl.searchParams.set("userId", userId);
+  }
+
+  if (user?.[USER_FIELDS.NAME]) {
+    completePageUrl.searchParams.set("name", user[USER_FIELDS.NAME]);
+  }
+
+  if (user?.[USER_FIELDS.TOTAL_CALORIES_REQUIRED_PER_DAY] !== undefined) {
+    completePageUrl.searchParams.set(
+      "totalCaloriesRequiredPerDay",
+      String(user[USER_FIELDS.TOTAL_CALORIES_REQUIRED_PER_DAY] ?? "")
+    );
+  }
+
+  return completePageUrl.toString();
+}
+
+function redirectToProfileUpdateCompletePage({ userId, user }) {
+  window.location.replace(
+    buildProfileUpdateCompletePageUrl({
+      userId,
+      user
+    })
+  );
+}
+
 async function loadUserByUrlId() {
-  const userId = userIdEl?.value?.trim() ?? "";
+  const userId = getCurrentUserId();
 
   if (!userId) {
     loadedUser = null;
@@ -170,16 +215,11 @@ async function loadUserByUrlId() {
     clearForm();
     setFormEnabled(false);
     setStatus("⚠️ Missing userId in URL. Open this page with ?userId=USER_DOCUMENT_ID");
-    setOutput({
-      success: false,
-      error: "Missing userId in URL query string."
-    });
     return;
   }
 
   try {
     setStatus("Loading user...");
-    setOutput("Loading user document...");
     setFormEnabled(false);
 
     const user = await getUserById(userId);
@@ -189,10 +229,6 @@ async function loadUserByUrlId() {
       clearUserHeader();
       clearForm();
       setStatus("⚠️ User not found.");
-      setOutput({
-        success: false,
-        error: "User not found."
-      });
       return;
     }
 
@@ -200,12 +236,7 @@ async function loadUserByUrlId() {
     populateUserHeader(user);
     populateForm(user);
     setFormEnabled(true);
-    setStatus("✅ User loaded from URL. You can now edit the allowed fields.");
-    setOutput({
-      success: true,
-      message: "User loaded successfully.",
-      user
-    });
+    setStatus("✅ You can now edit the allowed fields.");
   } catch (error) {
     console.error("[EditProfile] loadUserByUrlId error:", error);
     loadedUser = null;
@@ -213,36 +244,25 @@ async function loadUserByUrlId() {
     clearForm();
     setFormEnabled(false);
     setStatus("❌ Failed to load user.");
-    setOutput({
-      success: false,
-      error: error.message
-    });
   }
-}
-
-function fillSampleData() {
-  setValueSafely(nameEl, "John Doe");
-  setValueSafely(weightKgEl, "71.5");
-  setValueSafely(stepsPerDayEl, "8500");
-  setValueSafely(bodyFatPercentageEl, "");
-  setValueSafely(exerciseFrequencyPerWeekEl, "4");
-  setValueSafely(exerciseDurationMinutesEl, "45");
-  setValueSafely(exerciseIntensityEl, "moderate");
 }
 
 async function handleSubmit(event) {
   event.preventDefault();
 
-  const userId = userIdEl?.value?.trim() ?? "";
+  if (formEl && !formEl.reportValidity()) {
+    return;
+  }
+
+  const userId = getCurrentUserId();
 
   if (!userId) {
-    setOutput("Missing userId in URL.");
+    setStatus("Missing userId in URL.");
     return;
   }
 
   try {
     setStatus("Saving profile update...");
-    setOutput("Saving profile fields and snapshot...");
 
     if (saveBtn) {
       saveBtn.disabled = true;
@@ -252,7 +272,6 @@ async function handleSubmit(event) {
 
     if (!result.success) {
       setStatus("⚠️ Update failed.");
-      setOutput(result);
       return;
     }
 
@@ -264,14 +283,14 @@ async function handleSubmit(event) {
     }
 
     setStatus("✅ Profile updated and snapshot saved.");
-    setOutput(result);
+    setStatus("Profile updated. Redirecting...");
+    redirectToProfileUpdateCompletePage({
+      userId: result.userId || userId,
+      user: loadedUser || result.data || {}
+    });
   } catch (error) {
     console.error("[EditProfile] handleSubmit error:", error);
     setStatus("❌ Failed to update profile.");
-    setOutput({
-      success: false,
-      error: error.message
-    });
   } finally {
     if (saveBtn) {
       saveBtn.disabled = false;
@@ -289,45 +308,24 @@ async function initializePage() {
 
     const userIdFromUrl = getUserIdFromUrl();
 
-    if (userIdEl) {
-      userIdEl.value = userIdFromUrl;
-    }
-
     if (!userIdFromUrl) {
-      if (loadUserBtn) {
-        loadUserBtn.disabled = true;
-      }
-
       setStatus("⚠️ Missing userId in URL. Open this page with ?userId=USER_DOCUMENT_ID");
-      setOutput("Example: /pages/edit_profile/edit_profile.html?userId=abc123");
       return;
-    }
-
-    if (loadUserBtn) {
-      loadUserBtn.disabled = false;
     }
 
     await loadUserByUrlId();
   } catch (error) {
     console.error("[EditProfile] Initialization error:", error);
     setStatus("❌ Initialization failed.");
-    setOutput({
-      success: false,
-      error: error.message
-    });
   }
-}
-
-if (loadUserBtn) {
-  loadUserBtn.addEventListener("click", loadUserByUrlId);
-}
-
-if (fillSampleBtn) {
-  fillSampleBtn.addEventListener("click", fillSampleData);
 }
 
 if (formEl) {
   formEl.addEventListener("submit", handleSubmit);
+}
+
+if (saveBtn) {
+  saveBtn.addEventListener("click", handleSubmit);
 }
 
 initializePage();
