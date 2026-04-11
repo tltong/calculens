@@ -17,6 +17,8 @@ class FoodProcessingHandler {
    * 1) extracted food items + approximate quantities
    * 2) calorie estimation based on the extracted items
    *
+   * If no food items can be extracted, return a non-food result.
+   *
    * @param {Object} params
    * @param {Buffer|Uint8Array|string} params.imageBuffer
    * @param {string} [params.mimeType="image/jpeg"]
@@ -34,9 +36,20 @@ class FoodProcessingHandler {
         mimeType,
       });
 
-    const foodItems = Array.isArray(foodExtractionResult?.[FOOD_ANALYSIS_FIELDS.ITEMS]) ?
-      foodExtractionResult[FOOD_ANALYSIS_FIELDS.ITEMS] :
-      [];
+    const foodItems = Array.isArray(
+      foodExtractionResult?.[FOOD_ANALYSIS_FIELDS.ITEMS]
+    )
+      ? foodExtractionResult[FOOD_ANALYSIS_FIELDS.ITEMS]
+      : [];
+
+    if (foodItems.length === 0) {
+      return {
+        success: false,
+        errorCode: "PHOTO_IS_NOT_FOOD",
+        foodExtraction: foodExtractionResult,
+        calorieEstimation: null,
+      };
+    }
 
     const calorieEstimationResult =
       await geminiCalorieCounter.estimateCaloriesFromFoodItems({
@@ -44,6 +57,8 @@ class FoodProcessingHandler {
       });
 
     return {
+      success: true,
+      errorCode: null,
       foodExtraction: foodExtractionResult,
       calorieEstimation: calorieEstimationResult,
     };
