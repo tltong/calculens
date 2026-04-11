@@ -6,6 +6,7 @@ import {
 } from "/handlers/user_handler.js";
 
 import {
+  USER_FIELDS,
   GMT_OPTIONS,
   EXERCISE_FREQUENCY_OPTIONS,
   EXERCISE_INTENSITY_OPTIONS
@@ -13,8 +14,8 @@ import {
 
 const appStatusEl = document.getElementById("app-status");
 const formEl = document.getElementById("registration-form");
-const outputEl = document.getElementById("output");
 const fillTestDataBtn = document.getElementById("fill-test-data-btn");
+const debugOutputEl = document.getElementById("debug-output");
 
 const gmtSelectEl = document.getElementById("gmt");
 const phoneNumberEl = document.getElementById("phoneNumber");
@@ -25,14 +26,8 @@ const exerciseFrequencyEl = document.getElementById("exerciseFrequencyPerWeek");
 const exerciseDurationMinutesEl = document.getElementById("exerciseDurationMinutes");
 const exerciseIntensityEl = document.getElementById("exerciseIntensity");
 
-function setOutput(data) {
-  if (!outputEl) {
-    return;
-  }
-
-  outputEl.textContent =
-    typeof data === "string" ? data : JSON.stringify(data, null, 2);
-}
+const REGISTRATION_COMPLETE_PAGE_PATH =
+  "/pages/registration/registration_complete.html";
 
 function setStatus(message) {
   if (!appStatusEl) {
@@ -40,6 +35,21 @@ function setStatus(message) {
   }
 
   appStatusEl.textContent = message;
+}
+
+function setDebugOutput(data) {
+  if (!debugOutputEl) {
+    return;
+  }
+
+  debugOutputEl.textContent = JSON.stringify(
+    {
+      updatedAt: new Date().toISOString(),
+      ...data
+    },
+    null,
+    2
+  );
 }
 
 function setFormEnabled(enabled) {
@@ -57,75 +67,6 @@ function setFormEnabled(enabled) {
     phoneNumberEl.disabled = false;
     phoneNumberEl.readOnly = true;
   }
-}
-
-function getElementDebugInfo(element, label) {
-  if (!element) {
-    return {
-      label,
-      found: false
-    };
-  }
-
-  return {
-    label,
-    found: true,
-    tagName: element.tagName,
-    id: element.id,
-    name: element.getAttribute("name"),
-    optionCount:
-      element.tagName === "SELECT" ? element.options.length : undefined,
-    currentValue: "value" in element ? element.value : undefined
-  };
-}
-
-function buildDebugState(extra = {}) {
-  return {
-    locationSearch: window.location.search,
-    elements: {
-      form: getElementDebugInfo(formEl, "registration-form"),
-      gmt: getElementDebugInfo(gmtSelectEl, "gmt"),
-      phoneNumber: getElementDebugInfo(phoneNumberEl, "phoneNumber"),
-      exerciseFrequencyPerWeek: getElementDebugInfo(
-        exerciseFrequencyEl,
-        "exerciseFrequencyPerWeek"
-      ),
-      exerciseDurationMinutes: getElementDebugInfo(
-        exerciseDurationMinutesEl,
-        "exerciseDurationMinutes"
-      ),
-      exerciseIntensity: getElementDebugInfo(
-        exerciseIntensityEl,
-        "exerciseIntensity"
-      )
-    },
-    schema: {
-      gmtCount: GMT_OPTIONS.length,
-      exerciseFrequencyCount: EXERCISE_FREQUENCY_OPTIONS.length,
-      exerciseIntensityCount: EXERCISE_INTENSITY_OPTIONS.length,
-      exerciseFrequencyOptions: EXERCISE_FREQUENCY_OPTIONS,
-      exerciseIntensityOptions: EXERCISE_INTENSITY_OPTIONS
-    },
-    liveOptions: {
-      exerciseFrequencyElOptions: exerciseFrequencyEl
-        ? Array.from(exerciseFrequencyEl.options).map((option) => ({
-            value: option.value,
-            text: option.text
-          }))
-        : [],
-      exerciseIntensityElOptions: exerciseIntensityEl
-        ? Array.from(exerciseIntensityEl.options).map((option) => ({
-            value: option.value,
-            text: option.text
-          }))
-        : []
-    },
-    ...extra
-  };
-}
-
-function showDebug(extra = {}) {
-  setOutput(buildDebugState(extra));
 }
 
 function populateGmtOptions() {
@@ -171,10 +112,6 @@ function populateAllSelectOptions() {
   populateGmtOptions();
   populateExerciseFrequencyOptions();
   populateExerciseIntensityOptions();
-
-  showDebug({
-    stage: "after populateAllSelectOptions"
-  });
 }
 
 function getDetectedTimezoneGmtLabel() {
@@ -261,7 +198,7 @@ function applyPrefilledPhoneNumber() {
 
   if (phonePrefillNoteEl) {
     phonePrefillNoteEl.textContent =
-      "Phone number was prefilled from URL and cannot be edited.";
+      "Phone number was prefilled.";
   }
 }
 
@@ -353,57 +290,92 @@ function fillTestData() {
   if (exerciseIntensityEl) {
     exerciseIntensityEl.value = "moderate";
   }
+}
 
-  showDebug({
-    stage: "after fillTestData",
-    formData: getFormData()
-  });
+function buildRegistrationCompletePageUrl(result) {
+  const completePageUrl = new URL(
+    REGISTRATION_COMPLETE_PAGE_PATH,
+    window.location.origin
+  );
+  const userId = result?.userId?.toString().trim() ?? "";
+  const registeredUser = result?.data || {};
+
+  if (userId) {
+    completePageUrl.searchParams.set("userId", userId);
+  }
+
+  if (registeredUser[USER_FIELDS.NAME]) {
+    completePageUrl.searchParams.set(
+      "name",
+      registeredUser[USER_FIELDS.NAME]
+    );
+  }
+
+  if (registeredUser[USER_FIELDS.TOTAL_CALORIES_REQUIRED_PER_DAY] !== undefined) {
+    completePageUrl.searchParams.set(
+      "totalCaloriesRequiredPerDay",
+      String(registeredUser[USER_FIELDS.TOTAL_CALORIES_REQUIRED_PER_DAY] ?? "")
+    );
+  }
+
+  return completePageUrl.toString();
 }
 
 async function handleSubmit(event) {
   event.preventDefault();
+  let shouldEnableFormAfterSubmit = true;
 
   try {
     const payload = getFormData();
 
     setStatus("Submitting registration...");
-    showDebug({
-      stage: "before submit",
-      formData: payload
+    setDebugOutput({
+      stage: "submit_started",
+      href: window.location.href,
+      payload
     });
     setFormEnabled(false);
 
     const result = await registerUser(payload);
+    setDebugOutput({
+      stage: "register_user_result",
+      result
+    });
 
     if (!result.success) {
-      setStatus("⚠️ Registration failed.");
-      setOutput(result);
+      const errorMessage = Array.isArray(result.errors) ?
+        result.errors.join(" ") :
+        "Please check your details and try again.";
+
+      setStatus(`Registration failed. ${errorMessage}`);
       return;
     }
 
-    setStatus("✅ Registration successful.");
-    setOutput(result);
+    const redirectUrl = buildRegistrationCompletePageUrl(result);
 
-    formEl.reset();
-    populateAllSelectOptions();
-    applyDetectedTimezone();
-    applyPrefilledPhoneNumber();
-
-    showDebug({
-      stage: "after successful submit reset"
+    setStatus("Registration successful. Redirecting...");
+    setDebugOutput({
+      stage: "redirecting_to_registration_complete",
+      result,
+      redirectUrl
     });
+
+    shouldEnableFormAfterSubmit = false;
+    window.location.replace(redirectUrl);
   } catch (error) {
     console.error("[Registration] Submit error:", error);
-    setStatus("❌ Registration failed.");
-    setOutput({
-      success: false,
-      error: error.message,
-      debug: buildDebugState({
-        stage: "submit error"
-      })
+    setStatus(`Registration failed. ${error.message}`);
+    setDebugOutput({
+      stage: "submit_error",
+      error: {
+        message: error.message,
+        stack: error.stack
+      }
     });
   } finally {
-    setFormEnabled(true);
+    if (shouldEnableFormAfterSubmit) {
+      setFormEnabled(true);
+    }
   }
 }
 
@@ -411,29 +383,26 @@ async function initializePage() {
   try {
     initUserHandler();
 
-    showDebug({
-      stage: "before populate"
-    });
-
     populateAllSelectOptions();
     applyDetectedTimezone();
     applyPrefilledPhoneNumber();
     setFormEnabled(true);
-    setStatus("✅ Ready.");
-
-    showDebug({
-      stage: "after initializePage complete",
-      formData: getFormData()
+    setStatus("Ready.");
+    setDebugOutput({
+      stage: "initialized",
+      href: window.location.href,
+      completePagePath: REGISTRATION_COMPLETE_PAGE_PATH
     });
+
   } catch (error) {
     console.error("[Registration] Initialization error:", error);
-    setStatus("❌ Initialization failed.");
-    setOutput({
-      success: false,
-      error: error.message,
-      debug: buildDebugState({
-        stage: "initialization error"
-      })
+    setStatus(`Initialization failed. ${error.message}`);
+    setDebugOutput({
+      stage: "initialization_error",
+      error: {
+        message: error.message,
+        stack: error.stack
+      }
     });
   }
 }

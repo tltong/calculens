@@ -125,23 +125,13 @@
       cursor: not-allowed;
     }
 
-    .output {
-      margin-top: 16px;
-      background: #111827;
-      color: #f9fafb;
-      border-radius: 10px;
-      padding: 14px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-size: 13px;
-    }
-
-    .back-link {
+    .test-link {
       display: inline-block;
-      margin-bottom: 16px;
+      margin-top: 16px;
       color: #1f6fff;
-      text-decoration: none;
+      font-size: 14px;
       font-weight: 600;
+      text-decoration: none;
     }
 
     @media (max-width: 640px) {
@@ -165,14 +155,8 @@
 </head>
 <body>
   <div class="page">
-    <a class="back-link" href="/">← Back to Home</a>
-
     <div class="card">
       <h1>User Registration</h1>
-      <p class="subtitle">
-        Create a user profile. All fields are required except body fat percentage.
-        If body fat percentage is left empty, it will be treated as unavailable.
-      </p>
 
       <div id="app-status" class="status">Initializing...</div>
 
@@ -240,7 +224,7 @@
             placeholder="Optional"
           />
           <div class="helper-text">
-            Optional. Leave empty if not available.
+            Optional (but recommended). Leave empty if not available.
           </div>
         </div>
 
@@ -278,10 +262,9 @@
         </div>
       </form>
 
-      <pre id="output" class="output"></pre>
     </div>
   </div>
 
-  <script type="module" src="/pages/registration/registration.js"></script>
+  <script type="module" src="/pages/registration/registration.js?v=registration-complete-redirect-1"></script>
 </body>
 </html>

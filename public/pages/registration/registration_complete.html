@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Registration Complete</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      margin-top: 0;
+      color: #666;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .status {
+      margin-bottom: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #eef3ff;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .summary {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 18px;
+    }
+
+    .summary-item {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .summary-label {
+      color: #666;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .summary-value {
+      font-size: 20px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 14px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .summary {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <h1>Registration Complete</h1>
+      <p class="subtitle">
+        Your profile is ready.
+      </p>
+
+      <div id="app-status" class="status">Loading registration details...</div>
+
+      <div class="summary">
+        <div class="summary-item">
+          <div class="summary-label">Name</div>
+          <div id="user-name" class="summary-value">-</div>
+        </div>
+
+        <div class="summary-item">
+          <div class="summary-label">Total Calories Per Day</div>
+          <div id="daily-calories" class="summary-value">-</div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script type="module" src="/pages/registration/registration_complete.js"></script>
+</body>
+</html>
