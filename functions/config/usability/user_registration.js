@@ -1,43 +1,27 @@
 // functions/config/usability/user_registration.js
 
-const USER_REGISTRATION_MESSAGES = {
-  USER_NOT_REGISTERED_TEMPLATE:
-    "Please register first using this link:\n{registrationLink}",
+const {
+  USER_MESSAGES,
+  buildUserNotRegisteredMessage,
+  buildWelcomeRegisteredUserMessage,
+} = require("./user_message");
 
-  USER_REGISTERED: "user registered",
-
-  USER_WELCOME_TEMPLATE:
-    "Welcome 🎉\n\nYou're successfully registered.\nYou can now start tracking your calories.  Usage instruction: Just upload photos of your food.",
-
-  USER_EDIT_PROFILE_LINK_TEMPLATE:
-    "Edit your profile here:\n{editProfileLink}"
-};
+const USER_REGISTRATION_MESSAGES = USER_MESSAGES;
 
 /**
- * Build user-not-registered reply message
- */
-function buildUserNotRegisteredMessage({registrationLink}) {
-  return USER_REGISTRATION_MESSAGES.USER_NOT_REGISTERED_TEMPLATE.replace(
-    "{registrationLink}",
-    registrationLink || ""
-  );
-}
-
-/**
- * Build welcome message
+ * Build welcome message.
+ *
+ * Kept as a registration-specific wrapper so existing triggers can call the
+ * same function name while all message templates live in user_message.js.
  */
 function buildUserWelcomeMessage({editProfileLink = ""} = {}) {
-  const editProfileLine =
-    USER_REGISTRATION_MESSAGES.USER_EDIT_PROFILE_LINK_TEMPLATE.replace(
-      "{editProfileLink}",
-      editProfileLink
-    );
-
-  return `${USER_REGISTRATION_MESSAGES.USER_WELCOME_TEMPLATE}\n\n${editProfileLine}`;
+  return buildWelcomeRegisteredUserMessage({
+    editProfileLink,
+  });
 }
 
 module.exports = {
   USER_REGISTRATION_MESSAGES,
   buildUserNotRegisteredMessage,
-  buildUserWelcomeMessage
+  buildUserWelcomeMessage,
 };

@@ -26,13 +26,12 @@ import {
 } from "/config/admin/user_analysis_page.js";
 
 import {
-  getSubcollectionDocument,
   listenToSubcollectionDocument
 } from "/utils/firebase/firebase_ops.js";
 
 const pageSummaryEl = document.getElementById("page-summary");
+const analysisDateEl = document.getElementById("analysis-date");
 const appStatusEl = document.getElementById("app-status");
-const refreshAnalysisBtn = document.getElementById("refresh-analysis-btn");
 
 const dailyCaloriesTableBodyEl =
   document.getElementById("daily-calories-table-body");
@@ -97,9 +96,56 @@ function formatNumber(value, suffix = "") {
   return `${Math.round(numericValue)}${suffix}`;
 }
 
-function appendCell(row, text, className = "") {
+function formatTimestamp(value) {
+  const date = normalizeTimestampToDate(value);
+
+  if (!date) {
+    return "-";
+  }
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function normalizeTimestampToDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value.toDate === "function") {
+    const date = value.toDate();
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (Number.isFinite(Number(value))) {
+    const date = new Date(Number(value));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const seconds = Number(value.seconds ?? value._seconds);
+
+  if (Number.isFinite(seconds)) {
+    const date = new Date(seconds * 1000);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  return null;
+}
+
+function appendCell(row, text, label = "", className = "") {
   const cell = document.createElement("td");
   cell.textContent = text;
+
+  if (label) {
+    cell.dataset.label = label;
+  }
 
   if (className) {
     cell.className = className;
@@ -134,6 +180,15 @@ function clearResult() {
   }
 }
 
+function renderAnalysisDate(analysisRun) {
+  const timestamp =
+    analysisRun?.[USER_ANALYSIS_FIELDS.COMPLETED_AT] ||
+    analysisRun?.[USER_ANALYSIS_FIELDS.STARTED_AT] ||
+    analysisRun?.[USER_ANALYSIS_FIELDS.REQUESTED_AT];
+
+  setText(analysisDateEl, `Analysis date: ${formatTimestamp(timestamp)}`);
+}
+
 function renderAnalysisError(analysisRun) {
   const error = analysisRun?.[USER_ANALYSIS_FIELDS.ERROR] || {};
   const message = error[USER_ANALYSIS_ERROR_FIELDS.MESSAGE] || "";
@@ -159,6 +214,9 @@ function renderDailyCaloriesSummary(analysisRun) {
   )
     ? result[USER_ANALYSIS_RESULT_FIELDS.DAILY_CALORIE_SUMMARIES]
     : [];
+  const dailySummariesWithPhotos = dailySummaries.filter((dailySummary) => {
+    return dailySummary[USER_ANALYSIS_DAILY_RESULT_FIELDS.HAS_DATA] === true;
+  });
 
   if (!dailyCaloriesTableBodyEl) {
     return;
@@ -166,17 +224,18 @@ function renderDailyCaloriesSummary(analysisRun) {
 
   dailyCaloriesTableBodyEl.replaceChildren();
 
-  if (dailySummaries.length === 0) {
+  if (dailySummariesWithPhotos.length === 0) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
+    row.className = "empty-table-row";
     cell.colSpan = 5;
-    cell.textContent = "No daily calorie data found.";
+    cell.textContent = "No photo uploads found for this analysis period.";
     row.appendChild(cell);
     dailyCaloriesTableBodyEl.appendChild(row);
     return;
   }
 
-  dailySummaries.forEach((dailySummary) => {
+  dailySummariesWithPhotos.forEach((dailySummary) => {
     const hasData =
       dailySummary[USER_ANALYSIS_DAILY_RESULT_FIELDS.HAS_DATA] === true;
     const dailyCalorieDifference = toFiniteNumber(
@@ -188,7 +247,8 @@ function renderDailyCaloriesSummary(analysisRun) {
 
     appendCell(
       row,
-      formatValue(dailySummary[USER_ANALYSIS_DAILY_RESULT_FIELDS.FOOD_LOG_DATE])
+      formatValue(dailySummary[USER_ANALYSIS_DAILY_RESULT_FIELDS.FOOD_LOG_DATE]),
+      "Food Log Date"
     );
     appendCell(
       row,
@@ -199,13 +259,15 @@ function renderDailyCaloriesSummary(analysisRun) {
             ],
             " kcal"
           )
-        : "-"
+        : "-",
+      "Calories Consumed"
     );
     appendCell(
       row,
       hasData
         ? formatCalorieDifference(dailyCalorieDifference)
-        : "-"
+        : "-",
+      "Surplus/Deficit"
     );
     appendCell(
       row,
@@ -213,9 +275,10 @@ function renderDailyCaloriesSummary(analysisRun) {
         ? formatNumber(
             dailySummary[USER_ANALYSIS_DAILY_RESULT_FIELDS.PHOTO_COUNT]
           )
-        : "-"
+        : "-",
+      "Photos Uploaded"
     );
-    appendCell(row, hasData ? "Yes" : "No data");
+    appendCell(row, hasData ? "Yes" : "No data", "Included In Average");
 
     dailyCaloriesTableBodyEl.appendChild(row);
   });
@@ -286,6 +349,7 @@ function renderWeightChangeProjections(analysisRun) {
   if (projections.length === 0) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
+    row.className = "empty-table-row";
     cell.colSpan = 3;
     cell.textContent = "No weight change projection available.";
     row.appendChild(cell);
@@ -300,7 +364,8 @@ function renderWeightChangeProjections(analysisRun) {
       row,
       formatValue(
         projection[USER_ANALYSIS_WEIGHT_PROJECTION_FIELDS.PERIOD_LABEL]
-      )
+      ),
+      "Period"
     );
     appendCell(
       row,
@@ -308,7 +373,8 @@ function renderWeightChangeProjections(analysisRun) {
         projection[
           USER_ANALYSIS_WEIGHT_PROJECTION_FIELDS.PROJECTED_WEIGHT_CHANGE_KG
         ]
-      )
+      ),
+      "Projected Weight Change"
     );
     appendCell(
       row,
@@ -316,7 +382,8 @@ function renderWeightChangeProjections(analysisRun) {
         projection[
           USER_ANALYSIS_WEIGHT_PROJECTION_FIELDS.PROJECTED_WEIGHT_KG
         ]
-      )
+      ),
+      "Projected Weight"
     );
 
     weightProjectionTableBodyEl.appendChild(row);
@@ -407,11 +474,14 @@ function toFiniteNumber(value) {
 function renderAnalysisRun(analysisRun) {
   if (!analysisRun) {
     setStatus("Analysis run not found.");
+    renderAnalysisDate(null);
     clearResult();
     return;
   }
 
   const status = analysisRun[USER_ANALYSIS_FIELDS.STATUS];
+
+  renderAnalysisDate(analysisRun);
 
   if (status === USER_ANALYSIS_STATUSES.COMPLETED) {
     renderDailyCaloriesSummary(analysisRun);
@@ -425,32 +495,6 @@ function renderAnalysisRun(analysisRun) {
   }
 
   renderAnalysisError(analysisRun);
-}
-
-async function refreshAnalysisRun() {
-  const userId = getUserIdFromUrl();
-  const analysisRunId = getAnalysisRunIdFromUrl();
-
-  if (!userId || !analysisRunId) {
-    setStatus("Missing analysis result URL parameters.");
-    return;
-  }
-
-  try {
-    setStatus("Refreshing analysis result...");
-
-    const analysisRun = await getSubcollectionDocument(
-      USER_COLLECTION,
-      userId,
-      USER_ANALYSIS_SUBCOLLECTIONS.ANALYSIS_RUNS,
-      analysisRunId
-    );
-
-    renderAnalysisRun(analysisRun);
-  } catch (error) {
-    console.error("[UserAnalysisResult] refreshAnalysisRun error:", error);
-    setStatus(`Failed to refresh analysis result. ${error.message}`);
-  }
 }
 
 function startAnalysisRunListener(userId, analysisRunId) {
@@ -505,8 +549,6 @@ async function initializePage() {
     setStatus(`Initialization failed. ${error.message}`);
   }
 }
-
-refreshAnalysisBtn?.addEventListener("click", refreshAnalysisRun);
 
 window.addEventListener("beforeunload", () => {
   if (unsubscribeAnalysisRun) {

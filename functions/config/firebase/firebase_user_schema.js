@@ -67,11 +67,37 @@ function buildUserEditProfileLink(userDocumentId) {
   );
 }
 
+/**
+ * Build user analysis link for a given user and analysis run.
+ * @param {Object} params
+ * @param {string} params.userDocumentId
+ * @param {string} params.analysisRunId
+ * @returns {string}
+ */
+function buildUserAnalysisLink({
+  userDocumentId,
+  analysisRunId,
+}) {
+  const normalizedUserDocumentId = (userDocumentId || "").trim();
+  const normalizedAnalysisRunId = (analysisRunId || "").trim();
+
+  return FIREBASE_USER_LINKS.USER_ANALYSIS_URL_TEMPLATE
+      .replace(
+          "{userDocumentId}",
+          encodeURIComponent(normalizedUserDocumentId)
+      )
+      .replace(
+          "{analysisRunId}",
+          encodeURIComponent(normalizedAnalysisRunId)
+      );
+}
+
 module.exports = {
   USER_COLLECTION,
   USER_FIELDS,
   USER_SUBCOLLECTIONS,
   FIREBASE_USER_LINKS,
   buildUserRegistrationLink,
-  buildUserEditProfileLink
+  buildUserEditProfileLink,
+  buildUserAnalysisLink
 };

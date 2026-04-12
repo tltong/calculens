@@ -28,6 +28,7 @@ const {
   USER_ANALYSIS_FOOD_CONSUMPTION_REVIEW_FIELDS,
   USER_ANALYSIS_ERROR_FIELDS,
   USER_ANALYSIS_STATUSES,
+  USER_ANALYSIS_REQUEST_SOURCES,
   USER_ANALYSIS_TYPES,
 } = require("../config/firebase/user_analysis_schema");
 const {
@@ -35,6 +36,90 @@ const {
 } = require("../config/analysis/user_analysis");
 
 class UserAnalysisHandler {
+  /**
+   * Create, run, and persist a user analysis run without relying on the
+   * Firestore onCreate trigger to process it.
+   *
+   * @param {Object} params
+   * @param {string} params.userDocumentId
+   * @param {string} [params.requestedBy]
+   * @param {Object} [params.parameters]
+   * @returns {Promise<Object>}
+   */
+  async createAndProcessUserAnalysisRun({
+    userDocumentId,
+    requestedBy = USER_ANALYSIS_REQUEST_SOURCES.SCHEDULED_WEEKLY,
+    parameters = {},
+  }) {
+    validateCreateAndProcessUserAnalysisRunInput({
+      userDocumentId,
+      requestedBy,
+      parameters,
+    });
+
+    const normalizedParameters = {...parameters};
+    const analysisRunRef = this.createUserAnalysisRunRef({
+      userDocumentId,
+    });
+    const analysisRunId = analysisRunRef.id;
+    const timestamp = firebaseOps.getTimestamp();
+    const analysisRun = {
+      [USER_ANALYSIS_FIELDS.TYPE]: USER_ANALYSIS_TYPES.FOOD_SUMMARY,
+      [USER_ANALYSIS_FIELDS.STATUS]: USER_ANALYSIS_STATUSES.PROCESSING,
+      [USER_ANALYSIS_FIELDS.PARAMETERS]: normalizedParameters,
+      [USER_ANALYSIS_FIELDS.REQUESTED_BY]: requestedBy,
+      [USER_ANALYSIS_FIELDS.REQUESTED_AT]: timestamp,
+      [USER_ANALYSIS_FIELDS.STARTED_AT]: timestamp,
+      [USER_ANALYSIS_FIELDS.UPDATED_AT]: timestamp,
+    };
+
+    await analysisRunRef.set(analysisRun);
+
+    try {
+      const result = await this.runUserAnalysis({
+        userDocumentId,
+        analysisRun,
+      });
+      const completedTimestamp = firebaseOps.getTimestamp();
+
+      await analysisRunRef.update({
+        [USER_ANALYSIS_FIELDS.STATUS]: USER_ANALYSIS_STATUSES.COMPLETED,
+        [USER_ANALYSIS_FIELDS.RESULT]: result,
+        [USER_ANALYSIS_FIELDS.COMPLETED_AT]: completedTimestamp,
+        [USER_ANALYSIS_FIELDS.UPDATED_AT]: completedTimestamp,
+      });
+
+      console.log(
+        "[UserAnalysisHandler] Completed scheduled analysis run:",
+        analysisRunId
+      );
+
+      return {
+        analysisRunId,
+        status: USER_ANALYSIS_STATUSES.COMPLETED,
+        result,
+      };
+    } catch (error) {
+      const failedTimestamp = firebaseOps.getTimestamp();
+
+      console.error("[UserAnalysisHandler] Scheduled analysis failed:", error);
+
+      await analysisRunRef.update({
+        [USER_ANALYSIS_FIELDS.STATUS]: USER_ANALYSIS_STATUSES.FAILED,
+        [USER_ANALYSIS_FIELDS.ERROR]: {
+          [USER_ANALYSIS_ERROR_FIELDS.MESSAGE]: error.message,
+        },
+        [USER_ANALYSIS_FIELDS.UPDATED_AT]: failedTimestamp,
+      });
+
+      return {
+        analysisRunId,
+        status: USER_ANALYSIS_STATUSES.FAILED,
+        error,
+      };
+    }
+  }
+
   /**
    * Process a queued analysis run and persist lifecycle updates.
    *
@@ -144,6 +229,24 @@ class UserAnalysisHandler {
         .doc(userDocumentId)
         .collection(USER_ANALYSIS_SUBCOLLECTIONS.ANALYSIS_RUNS)
         .doc(analysisRunId);
+  }
+
+  /**
+   * Build a new analysis run reference for one user.
+   *
+   * @param {Object} params
+   * @param {string} params.userDocumentId
+   * @returns {FirebaseFirestore.DocumentReference}
+   */
+  createUserAnalysisRunRef({
+    userDocumentId,
+  }) {
+    return firebaseOps
+        .getFirestore()
+        .collection(USER_COLLECTION)
+        .doc(userDocumentId)
+        .collection(USER_ANALYSIS_SUBCOLLECTIONS.ANALYSIS_RUNS)
+        .doc();
   }
 
   /**
@@ -419,6 +522,28 @@ function validateProcessUserAnalysisRunInput({
     Array.isArray(analysisRun)
   ) {
     throw new Error("analysisRun is required and must be an object.");
+  }
+}
+
+function validateCreateAndProcessUserAnalysisRunInput({
+  userDocumentId,
+  requestedBy,
+  parameters,
+}) {
+  if (!userDocumentId || typeof userDocumentId !== "string") {
+    throw new Error("userDocumentId is required and must be a string.");
+  }
+
+  if (!requestedBy || typeof requestedBy !== "string") {
+    throw new Error("requestedBy is required and must be a string.");
+  }
+
+  if (
+    !parameters ||
+    typeof parameters !== "object" ||
+    Array.isArray(parameters)
+  ) {
+    throw new Error("parameters must be an object.");
   }
 }
 

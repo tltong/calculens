@@ -6,6 +6,7 @@ const {
   USER_FIELDS,
   USER_SUBCOLLECTIONS,
   buildUserRegistrationLink,
+  buildUserEditProfileLink,
 } = require("../config/firebase/firebase_user_schema");
 const {
   FOOD_LOG_FIELDS,
@@ -14,9 +15,11 @@ const {
   FOOD_LOG_PROCESSING_STATUS,
 } = require("../config/firebase/food_data_schema");
 const {
-  USER_REGISTRATION_MESSAGES,
   buildUserNotRegisteredMessage,
 } = require("../config/usability/user_registration");
+const {
+  buildRegisteredUserInstructionMessage,
+} = require("../config/usability/user_message");
 
 /**
  * Normalize WhatsApp number from Twilio format
@@ -85,10 +88,12 @@ async function getUserByPhone(phoneNumber) {
  */
 async function buildUserRegistrationStatusReply(phoneNumber) {
   const normalizedPhoneNumber = normalizeWhatsAppNumber(phoneNumber);
-  const isRegistered = await isUserRegisteredByPhone(normalizedPhoneNumber);
+  const user = await getUserByPhone(normalizedPhoneNumber);
 
-  if (isRegistered) {
-    return USER_REGISTRATION_MESSAGES.USER_REGISTERED;
+  if (user) {
+    return buildRegisteredUserInstructionMessage({
+      editProfileLink: buildUserEditProfileLink(user.id),
+    });
   }
 
   const registrationLink = buildUserRegistrationLink(normalizedPhoneNumber);

@@ -89,6 +89,11 @@
       color: #222;
     }
 
+    button.danger {
+      background: #b42318;
+      color: #fff;
+    }
+
     button:disabled {
       opacity: 0.65;
       cursor: not-allowed;
@@ -103,7 +108,7 @@
 
     table {
       width: 100%;
-      min-width: 940px;
+      min-width: 1040px;
       border-collapse: collapse;
     }
 
@@ -145,6 +150,27 @@
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
+    }
+
+    .delete-controls {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .delete-confirm {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: #666;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .delete-confirm input {
+      margin-top: 2px;
     }
 
     .analysis-status {
@@ -232,6 +258,6 @@
     </div>
   </div>
 
-  <script type="module" src="/pages/admin/admin.js?v=admin-users-1"></script>
+  <script type="module" src="/pages/admin/admin.js?v=admin-users-3"></script>
 </body>
 </html>

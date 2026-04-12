@@ -159,6 +159,46 @@ async function deleteDocument(collectionName, docId) {
 }
 
 /**
+ * Read documents from a collection path.
+ * @param {string[]} pathSegments
+ * @returns {Promise<Array>}
+ */
+async function getCollectionDocumentsByPath(pathSegments) {
+  validateCollectionPathSegments(pathSegments);
+
+  try {
+    const firestore = initFirestore();
+    const collectionRef = collection(firestore, ...pathSegments);
+    const snapshot = await getDocs(collectionRef);
+
+    return snapshot.docs.map((docItem) => ({
+      id: docItem.id,
+      ...docItem.data()
+    }));
+  } catch (error) {
+    console.error("[Firestore] getCollectionDocumentsByPath error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a document by path.
+ * @param {string[]} pathSegments
+ */
+async function deleteDocumentByPath(pathSegments) {
+  validateDocumentPathSegments(pathSegments);
+
+  try {
+    const firestore = initFirestore();
+    const docRef = doc(firestore, ...pathSegments);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error("[Firestore] deleteDocumentByPath error:", error);
+    throw error;
+  }
+}
+
+/**
  * Query documents by a field
  * @param {string} collectionName
  * @param {string} fieldName
@@ -437,6 +477,34 @@ function listenToOrderedSubcollectionDocuments(
   }
 }
 
+function validateCollectionPathSegments(pathSegments) {
+  validatePathSegments(pathSegments);
+
+  if (pathSegments.length % 2 === 0) {
+    throw new Error("Collection path must have an odd number of segments.");
+  }
+}
+
+function validateDocumentPathSegments(pathSegments) {
+  validatePathSegments(pathSegments);
+
+  if (pathSegments.length % 2 !== 0) {
+    throw new Error("Document path must have an even number of segments.");
+  }
+}
+
+function validatePathSegments(pathSegments) {
+  if (!Array.isArray(pathSegments) || pathSegments.length === 0) {
+    throw new Error("pathSegments must be a non-empty array.");
+  }
+
+  pathSegments.forEach((pathSegment) => {
+    if (!pathSegment || typeof pathSegment !== "string") {
+      throw new Error("pathSegments must contain non-empty strings.");
+    }
+  });
+}
+
 export {
   initFirestore,
   getFirestoreDB,
@@ -446,6 +514,8 @@ export {
   getCollection,
   updateDocument,
   deleteDocument,
+  getCollectionDocumentsByPath,
+  deleteDocumentByPath,
   queryDocuments,
   getOrderedDocuments,
   addSubcollectionDocument,

@@ -26,6 +26,10 @@ import {
 } from "/handlers/user_analysis_handler.js";
 
 import {
+  deleteUserAndBackendData
+} from "/handlers/admin_user_handler.js?v=client-delete-1";
+
+import {
   addSubcollectionDocument,
   listenToSubcollectionDocument
 } from "/utils/firebase/firebase_ops.js";
@@ -117,6 +121,23 @@ function formatTimestamp(value) {
   return date.toLocaleString();
 }
 
+function formatErrorMessage(error) {
+  const detailsMessage =
+    typeof error?.details === "string" ? error.details : "";
+  const message =
+    detailsMessage ||
+    error?.message ||
+    error?.code ||
+    "Unknown error";
+  const code = error?.code || "";
+
+  if (code && message && message !== code) {
+    return `${message} (${code})`;
+  }
+
+  return message;
+}
+
 function buildEditProfileUrl(userId) {
   const editProfileUrl = new URL(EDIT_PROFILE_PAGE_PATH, window.location.origin);
   editProfileUrl.searchParams.set("userId", userId);
@@ -158,8 +179,14 @@ function appendActionCell(row, user) {
   const runAnalysisBtn = document.createElement("button");
   const analysisStatus = document.createElement("span");
   const resultLink = document.createElement("a");
+  const deleteControls = document.createElement("div");
+  const deleteConfirmLabel = document.createElement("label");
+  const deleteConfirmCheckbox = document.createElement("input");
+  const deleteConfirmText = document.createElement("span");
+  const deleteUserBtn = document.createElement("button");
 
   actionsWrap.className = "row-actions";
+  deleteControls.className = "delete-controls";
 
   editLink.className = "button-link";
   editLink.href = buildEditProfileUrl(user.id);
@@ -175,11 +202,26 @@ function appendActionCell(row, user) {
   resultLink.className = "button-link secondary hidden";
   resultLink.textContent = "View Result";
 
+  deleteConfirmLabel.className = "delete-confirm";
+  deleteConfirmCheckbox.type = "checkbox";
+  deleteConfirmText.textContent =
+    "I understand this removes all backend data for this user.";
+
+  deleteUserBtn.type = "button";
+  deleteUserBtn.className = "danger";
+  deleteUserBtn.textContent = "Delete User";
+  deleteUserBtn.disabled = true;
+
   actionsWrap.appendChild(editLink);
   actionsWrap.appendChild(runAnalysisBtn);
   actionsWrap.appendChild(analysisStatus);
   actionsWrap.appendChild(resultLink);
+  deleteConfirmLabel.appendChild(deleteConfirmCheckbox);
+  deleteConfirmLabel.appendChild(deleteConfirmText);
+  deleteControls.appendChild(deleteConfirmLabel);
+  deleteControls.appendChild(deleteUserBtn);
   cell.appendChild(actionsWrap);
+  cell.appendChild(deleteControls);
   row.appendChild(cell);
 
   runAnalysisBtn.addEventListener("click", () => {
@@ -188,6 +230,18 @@ function appendActionCell(row, user) {
       runAnalysisBtn,
       analysisStatus,
       resultLink
+    });
+  });
+
+  deleteConfirmCheckbox.addEventListener("change", () => {
+    deleteUserBtn.disabled = !deleteConfirmCheckbox.checked;
+  });
+
+  deleteUserBtn.addEventListener("click", () => {
+    deleteRegisteredUser({
+      user,
+      deleteUserBtn,
+      deleteConfirmCheckbox
     });
   });
 }
@@ -286,7 +340,38 @@ async function runUserAnalysis({
     runAnalysisBtn.disabled = false;
     analysisStatus.textContent = "Failed";
     setVisible(resultLink, false);
-    setStatus(`Failed to queue analysis. ${error.message}`);
+    setStatus(`Failed to queue analysis. ${formatErrorMessage(error)}`);
+  }
+}
+
+async function deleteRegisteredUser({
+  user,
+  deleteUserBtn,
+  deleteConfirmCheckbox
+}) {
+  try {
+    clearAnalysisRunListenersForUser(user.id);
+    deleteUserBtn.disabled = true;
+    deleteConfirmCheckbox.disabled = true;
+    deleteUserBtn.textContent = "Deleting...";
+    setStatus(`Deleting ${formatValue(user[USER_FIELDS.NAME])}...`);
+
+    const deleteResult = await deleteUserAndBackendData({
+      userDocumentId: user.id
+    });
+
+    const deleteStatusMessage = deleteResult?.notFound
+      ? "User was already deleted."
+      : `Deleted ${formatValue(user[USER_FIELDS.NAME])}.`;
+
+    await loadRegisteredUsers();
+    setStatus(deleteStatusMessage);
+  } catch (error) {
+    console.error("[AdminUsers] deleteRegisteredUser error:", error);
+    deleteConfirmCheckbox.disabled = false;
+    deleteUserBtn.disabled = !deleteConfirmCheckbox.checked;
+    deleteUserBtn.textContent = "Delete User";
+    setStatus(`Failed to delete user. ${formatErrorMessage(error)}`);
   }
 }
 
@@ -347,7 +432,7 @@ async function loadRegisteredUsers() {
   } catch (error) {
     console.error("[AdminUsers] loadRegisteredUsers error:", error);
     renderUsers([]);
-    setStatus(`Failed to load registered users. ${error.message}`);
+    setStatus(`Failed to load registered users. ${formatErrorMessage(error)}`);
   } finally {
     setLoading(false);
   }
@@ -359,7 +444,7 @@ async function initializePage() {
     await loadRegisteredUsers();
   } catch (error) {
     console.error("[AdminUsers] initialization error:", error);
-    setStatus(`Initialization failed. ${error.message}`);
+    setStatus(`Initialization failed. ${formatErrorMessage(error)}`);
     setLoading(false);
   }
 }

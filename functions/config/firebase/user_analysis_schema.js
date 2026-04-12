@@ -100,6 +100,7 @@ const USER_ANALYSIS_STATUSES = {
 
 const USER_ANALYSIS_REQUEST_SOURCES = {
   ADMIN_PAGE: "admin_page",
+  SCHEDULED_WEEKLY: "scheduled_weekly",
 };
 
 const USER_ANALYSIS_TRIGGER_PARAMS = {
