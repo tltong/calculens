@@ -13,10 +13,12 @@ import {
 import {
   USER_ANALYSIS_SUBCOLLECTIONS,
   USER_ANALYSIS_FIELDS,
-  USER_ANALYSIS_PARAMETER_FIELDS,
   USER_ANALYSIS_RESULT_FIELDS,
+  USER_ANALYSIS_DAILY_RESULT_FIELDS,
+  USER_ANALYSIS_WEIGHT_PROJECTION_FIELDS,
   USER_ANALYSIS_ERROR_FIELDS,
-  USER_ANALYSIS_STATUSES
+  USER_ANALYSIS_STATUSES,
+  USER_ANALYSIS_PAGE_QUERY_PARAMS
 } from "/config/firebase/user_analysis_schema.js";
 
 import {
@@ -28,23 +30,16 @@ const pageSummaryEl = document.getElementById("page-summary");
 const appStatusEl = document.getElementById("app-status");
 const refreshAnalysisBtn = document.getElementById("refresh-analysis-btn");
 
-const userNameEl = document.getElementById("user-name");
-const userPhoneEl = document.getElementById("user-phone");
-const analysisStatusEl = document.getElementById("analysis-status");
-const analysisCompletedAtEl = document.getElementById("analysis-completed-at");
+const dailyCaloriesTableBodyEl =
+  document.getElementById("daily-calories-table-body");
+const weightProjectionTableBodyEl =
+  document.getElementById("weight-projection-table-body");
 
-const resultFoodLogDateEl = document.getElementById("result-food-log-date");
-const resultPhotoCountEl = document.getElementById("result-photo-count");
-const resultCountedPhotoCountEl =
-  document.getElementById("result-counted-photo-count");
-const resultSkippedPhotoCountEl =
-  document.getElementById("result-skipped-photo-count");
-const resultTotalCaloriesEl = document.getElementById("result-total-calories");
-
-const analysisRunIdEl = document.getElementById("analysis-run-id");
-const analysisTypeEl = document.getElementById("analysis-type");
-const analysisRequestedAtEl = document.getElementById("analysis-requested-at");
-const analysisStartedAtEl = document.getElementById("analysis-started-at");
+const dailyCaloriesRequiredEl = document.getElementById("daily-calories-required");
+const intakeDailyAverageConsumedEl =
+  document.getElementById("intake-daily-average-consumed");
+const dailySurplusDeficitEl = document.getElementById("daily-surplus-deficit");
+const currentWeightEl = document.getElementById("current-weight");
 const analysisErrorEl = document.getElementById("analysis-error");
 
 let unsubscribeAnalysisRun = null;
@@ -65,11 +60,11 @@ function getUrlParam(name) {
 }
 
 function getUserIdFromUrl() {
-  return getUrlParam("userId");
+  return getUrlParam(USER_ANALYSIS_PAGE_QUERY_PARAMS.USER_ID);
 }
 
 function getAnalysisRunIdFromUrl() {
-  return getUrlParam("analysisRunId");
+  return getUrlParam(USER_ANALYSIS_PAGE_QUERY_PARAMS.ANALYSIS_RUN_ID);
 }
 
 function formatValue(value) {
@@ -94,66 +89,18 @@ function formatNumber(value, suffix = "") {
   return `${Math.round(numericValue)}${suffix}`;
 }
 
-function formatTimestamp(value) {
-  const date = toDate(value);
+function appendCell(row, text, className = "") {
+  const cell = document.createElement("td");
+  cell.textContent = text;
 
-  if (!date) {
-    return "-";
+  if (className) {
+    cell.className = className;
   }
 
-  return date.toLocaleString();
-}
-
-function toDate(value) {
-  if (!value) {
-    return null;
-  }
-
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value;
-  }
-
-  if (typeof value === "number") {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  if (typeof value?.toDate === "function") {
-    const date = value.toDate();
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  if (Number.isFinite(Number(value?.seconds))) {
-    const milliseconds =
-      Number(value.seconds) * 1000 +
-      Math.floor(Number(value.nanoseconds || 0) / 1000000);
-    const date = new Date(milliseconds);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  return null;
-}
-
-function getAnalysisRunLogDate(analysisRun) {
-  const result = analysisRun?.[USER_ANALYSIS_FIELDS.RESULT] || {};
-  const parameters = analysisRun?.[USER_ANALYSIS_FIELDS.PARAMETERS] || {};
-
-  return (
-    result[USER_ANALYSIS_RESULT_FIELDS.FOOD_LOG_DATE] ||
-    parameters[USER_ANALYSIS_PARAMETER_FIELDS.LOG_DATE] ||
-    "-"
-  );
-}
-
-function getAnalysisRunResultValue(analysisRun, fieldName) {
-  const result = analysisRun?.[USER_ANALYSIS_FIELDS.RESULT] || {};
-  return result[fieldName];
+  row.appendChild(cell);
 }
 
 function renderUser(user) {
-  setText(userNameEl, formatValue(user?.[USER_FIELDS.NAME]));
-  setText(userPhoneEl, formatValue(user?.[USER_FIELDS.PHONE_NUMBER]));
-
   setText(
     pageSummaryEl,
     user?.[USER_FIELDS.NAME]
@@ -163,11 +110,18 @@ function renderUser(user) {
 }
 
 function clearResult() {
-  setText(resultFoodLogDateEl, "-");
-  setText(resultPhotoCountEl, "-");
-  setText(resultCountedPhotoCountEl, "-");
-  setText(resultSkippedPhotoCountEl, "-");
-  setText(resultTotalCaloriesEl, "-");
+  setText(dailyCaloriesRequiredEl, "-");
+  setText(intakeDailyAverageConsumedEl, "-");
+  setText(dailySurplusDeficitEl, "-");
+  setText(currentWeightEl, "-");
+
+  if (dailyCaloriesTableBodyEl) {
+    dailyCaloriesTableBodyEl.replaceChildren();
+  }
+
+  if (weightProjectionTableBodyEl) {
+    weightProjectionTableBodyEl.replaceChildren();
+  }
 }
 
 function renderAnalysisError(analysisRun) {
@@ -188,73 +142,235 @@ function renderAnalysisError(analysisRun) {
   analysisErrorEl.style.display = "block";
 }
 
-function renderAnalysisRun(analysisRun) {
-  const analysisRunId = getAnalysisRunIdFromUrl();
+function renderDailyCaloriesSummary(analysisRun) {
+  const result = analysisRun?.[USER_ANALYSIS_FIELDS.RESULT] || {};
+  const dailySummaries = Array.isArray(
+    result[USER_ANALYSIS_RESULT_FIELDS.DAILY_CALORIE_SUMMARIES]
+  )
+    ? result[USER_ANALYSIS_RESULT_FIELDS.DAILY_CALORIE_SUMMARIES]
+    : [];
 
+  if (!dailyCaloriesTableBodyEl) {
+    return;
+  }
+
+  dailyCaloriesTableBodyEl.replaceChildren();
+
+  if (dailySummaries.length === 0) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 5;
+    cell.textContent = "No daily calorie data found.";
+    row.appendChild(cell);
+    dailyCaloriesTableBodyEl.appendChild(row);
+    return;
+  }
+
+  dailySummaries.forEach((dailySummary) => {
+    const hasData =
+      dailySummary[USER_ANALYSIS_DAILY_RESULT_FIELDS.HAS_DATA] === true;
+    const dailyCalorieDifference = toFiniteNumber(
+      dailySummary[
+        USER_ANALYSIS_DAILY_RESULT_FIELDS.CALORIE_DIFFERENCE
+      ]
+    );
+    const row = document.createElement("tr");
+
+    appendCell(
+      row,
+      formatValue(dailySummary[USER_ANALYSIS_DAILY_RESULT_FIELDS.FOOD_LOG_DATE])
+    );
+    appendCell(
+      row,
+      hasData
+        ? formatNumber(
+            dailySummary[
+              USER_ANALYSIS_DAILY_RESULT_FIELDS.TOTAL_CALORIES_CONSUMED
+            ],
+            " kcal"
+          )
+        : "-"
+    );
+    appendCell(
+      row,
+      hasData
+        ? formatCalorieDifference(dailyCalorieDifference)
+        : "-"
+    );
+    appendCell(
+      row,
+      hasData
+        ? formatNumber(
+            dailySummary[USER_ANALYSIS_DAILY_RESULT_FIELDS.PHOTO_COUNT]
+          )
+        : "-"
+    );
+    appendCell(row, hasData ? "Yes" : "No data");
+
+    dailyCaloriesTableBodyEl.appendChild(row);
+  });
+}
+
+function renderCalorieIntake(analysisRun) {
+  const result = analysisRun?.[USER_ANALYSIS_FIELDS.RESULT] || {};
+  const dailyCaloriesRequired = toFiniteNumber(
+    result[USER_ANALYSIS_RESULT_FIELDS.DAILY_CALORIES_REQUIRED]
+  );
+  const dailyAverageConsumed = toFiniteNumber(
+    result[USER_ANALYSIS_RESULT_FIELDS.DAILY_AVERAGE_CALORIES_CONSUMED]
+  );
+  const dailyAverageCalorieDifference = toFiniteNumber(
+    result[USER_ANALYSIS_RESULT_FIELDS.DAILY_AVERAGE_CALORIE_DIFFERENCE]
+  );
+
+  setText(
+    dailyCaloriesRequiredEl,
+    formatNumber(dailyCaloriesRequired, " kcal")
+  );
+  setText(
+    intakeDailyAverageConsumedEl,
+    formatNumber(dailyAverageConsumed, " kcal")
+  );
+  setText(
+    dailySurplusDeficitEl,
+    formatCalorieDifference(dailyAverageCalorieDifference)
+  );
+}
+
+function renderWeightChangeProjections(analysisRun) {
+  const result = analysisRun?.[USER_ANALYSIS_FIELDS.RESULT] || {};
+  const currentWeightKg = toFiniteNumber(
+    result[USER_ANALYSIS_RESULT_FIELDS.CURRENT_WEIGHT_KG]
+  );
+  const projections = Array.isArray(
+    result[USER_ANALYSIS_RESULT_FIELDS.WEIGHT_CHANGE_PROJECTIONS]
+  )
+    ? result[USER_ANALYSIS_RESULT_FIELDS.WEIGHT_CHANGE_PROJECTIONS]
+    : [];
+
+  setText(currentWeightEl, formatWeightKg(currentWeightKg));
+
+  if (!weightProjectionTableBodyEl) {
+    return;
+  }
+
+  weightProjectionTableBodyEl.replaceChildren();
+
+  if (projections.length === 0) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 3;
+    cell.textContent = "No weight change projection available.";
+    row.appendChild(cell);
+    weightProjectionTableBodyEl.appendChild(row);
+    return;
+  }
+
+  projections.forEach((projection) => {
+    const row = document.createElement("tr");
+
+    appendCell(
+      row,
+      formatValue(
+        projection[USER_ANALYSIS_WEIGHT_PROJECTION_FIELDS.PERIOD_LABEL]
+      )
+    );
+    appendCell(
+      row,
+      formatWeightChangeKg(
+        projection[
+          USER_ANALYSIS_WEIGHT_PROJECTION_FIELDS.PROJECTED_WEIGHT_CHANGE_KG
+        ]
+      )
+    );
+    appendCell(
+      row,
+      formatWeightKg(
+        projection[
+          USER_ANALYSIS_WEIGHT_PROJECTION_FIELDS.PROJECTED_WEIGHT_KG
+        ]
+      )
+    );
+
+    weightProjectionTableBodyEl.appendChild(row);
+  });
+}
+
+function formatCalorieDifference(calorieDifference) {
+  if (calorieDifference === null) {
+    return "-";
+  }
+
+  const difference = Number(calorieDifference);
+
+  if (!Number.isFinite(difference)) {
+    return "-";
+  }
+
+  if (difference > 0) {
+    return `${Math.round(difference)} kcal surplus`;
+  }
+
+  if (difference < 0) {
+    return `${Math.round(Math.abs(difference))} kcal deficit`;
+  }
+
+  return "Balanced";
+}
+
+function formatWeightChangeKg(value) {
+  const weightChangeKg = toFiniteNumber(value);
+
+  if (weightChangeKg === null) {
+    return "-";
+  }
+
+  const roundedWeightChangeKg = Math.abs(weightChangeKg).toFixed(1);
+
+  if (weightChangeKg > 0) {
+    return `+${roundedWeightChangeKg} kg`;
+  }
+
+  if (weightChangeKg < 0) {
+    return `-${roundedWeightChangeKg} kg`;
+  }
+
+  return "0.0 kg";
+}
+
+function formatWeightKg(value) {
+  const weightKg = toFiniteNumber(value);
+
+  if (weightKg === null) {
+    return "-";
+  }
+
+  return `${weightKg.toFixed(1)} kg`;
+}
+
+function toFiniteNumber(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const numberValue = Number(value);
+
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function renderAnalysisRun(analysisRun) {
   if (!analysisRun) {
     setStatus("Analysis run not found.");
-    setText(analysisStatusEl, "-");
     clearResult();
     return;
   }
 
   const status = analysisRun[USER_ANALYSIS_FIELDS.STATUS];
 
-  setText(analysisRunIdEl, analysisRunId);
-  setText(analysisTypeEl, formatValue(analysisRun[USER_ANALYSIS_FIELDS.TYPE]));
-  setText(analysisStatusEl, formatValue(status));
-  setText(
-    analysisRequestedAtEl,
-    formatTimestamp(analysisRun[USER_ANALYSIS_FIELDS.REQUESTED_AT])
-  );
-  setText(
-    analysisStartedAtEl,
-    formatTimestamp(analysisRun[USER_ANALYSIS_FIELDS.STARTED_AT])
-  );
-  setText(
-    analysisCompletedAtEl,
-    formatTimestamp(analysisRun[USER_ANALYSIS_FIELDS.COMPLETED_AT])
-  );
-
   if (status === USER_ANALYSIS_STATUSES.COMPLETED) {
-    setText(resultFoodLogDateEl, getAnalysisRunLogDate(analysisRun));
-    setText(
-      resultPhotoCountEl,
-      formatNumber(
-        getAnalysisRunResultValue(
-          analysisRun,
-          USER_ANALYSIS_RESULT_FIELDS.PHOTO_COUNT
-        )
-      )
-    );
-    setText(
-      resultCountedPhotoCountEl,
-      formatNumber(
-        getAnalysisRunResultValue(
-          analysisRun,
-          USER_ANALYSIS_RESULT_FIELDS.COUNTED_PHOTO_COUNT
-        )
-      )
-    );
-    setText(
-      resultSkippedPhotoCountEl,
-      formatNumber(
-        getAnalysisRunResultValue(
-          analysisRun,
-          USER_ANALYSIS_RESULT_FIELDS.SKIPPED_PHOTO_COUNT
-        )
-      )
-    );
-    setText(
-      resultTotalCaloriesEl,
-      formatNumber(
-        getAnalysisRunResultValue(
-          analysisRun,
-          USER_ANALYSIS_RESULT_FIELDS.TOTAL_CALORIES_CONSUMED
-        ),
-        " kcal"
-      )
-    );
+    renderDailyCaloriesSummary(analysisRun);
+    renderCalorieIntake(analysisRun);
+    renderWeightChangeProjections(analysisRun);
     setStatus("Analysis complete.");
   } else {
     clearResult();
@@ -269,7 +385,7 @@ async function refreshAnalysisRun() {
   const analysisRunId = getAnalysisRunIdFromUrl();
 
   if (!userId || !analysisRunId) {
-    setStatus("Missing userId or analysisRunId in URL.");
+    setStatus("Missing analysis result URL parameters.");
     return;
   }
 
@@ -319,12 +435,11 @@ async function initializePage() {
 
     if (!userId || !analysisRunId) {
       setStatus(
-        "Missing URL parameters. Open this page with ?userId=USER_DOCUMENT_ID&analysisRunId=ANALYSIS_RUN_ID"
+        "Missing URL parameters. Open this page from the completed admin analysis link."
       );
       return;
     }
 
-    setText(analysisRunIdEl, analysisRunId);
     setStatus("Loading user...");
 
     const user = await getUserById(userId);

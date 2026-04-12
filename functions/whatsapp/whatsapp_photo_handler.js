@@ -12,6 +12,7 @@ const {
 } = require("../utils/twilio/twilio_send_whatsapp");
 const {
   FOOD_LOG_PROCESSING_STATUS,
+  FOOD_PHOTO_PROCESSING_RESULT_FIELDS,
 } = require("../config/firebase/food_data_schema");
 const {
   FOOD_PROCESSING_MESSAGES,
@@ -109,13 +110,18 @@ async function processWhatsAppFoodPhoto({
     mimeType: validatedMedia.mediaContentType,
   });
 
-  if (!processingResult?.success) {
+  if (!processingResult?.[FOOD_PHOTO_PROCESSING_RESULT_FIELDS.SUCCESS]) {
     const storageResult = await storeUserFoodAnalysis({
       userDocumentId: user.id,
-      foodDescription: processingResult?.foodExtraction || null,
+      foodDescription:
+        processingResult?.[
+          FOOD_PHOTO_PROCESSING_RESULT_FIELDS.FOOD_EXTRACTION
+        ] || null,
       calorieCalculated: null,
       processingStatus: FOOD_LOG_PROCESSING_STATUS.FAILED,
-      processingErrorCode: processingResult?.errorCode || null,
+      processingErrorCode:
+        processingResult?.[FOOD_PHOTO_PROCESSING_RESULT_FIELDS.ERROR_CODE] ||
+        null,
     });
 
     return {
@@ -129,8 +135,10 @@ async function processWhatsAppFoodPhoto({
     };
   }
 
-  const foodDescription = processingResult.foodExtraction;
-  const calorieCalculated = processingResult.calorieEstimation;
+  const foodDescription =
+    processingResult[FOOD_PHOTO_PROCESSING_RESULT_FIELDS.FOOD_EXTRACTION];
+  const calorieCalculated =
+    processingResult[FOOD_PHOTO_PROCESSING_RESULT_FIELDS.CALORIE_ESTIMATION];
 
   const storageResult = await storeUserFoodAnalysis({
     userDocumentId: user.id,

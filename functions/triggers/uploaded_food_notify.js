@@ -12,6 +12,7 @@ const {
   FOOD_ANALYSIS_FIELDS,
   FOOD_ITEM_FIELDS,
   FOOD_LOG_FIELDS,
+  FOOD_DAILY_SUMMARY_FIELDS,
   FOOD_LOG_SUBCOLLECTIONS,
   FOOD_LOG_PROCESSING_STATUS,
   FOOD_LOG_PROCESSING_ERROR_CODES,
@@ -114,7 +115,10 @@ async function buildDailyCaloriesProgressLineForLog({
       });
 
     return foodProcessingHandler.buildDailyCaloriesProgressLine({
-      totalCaloriesConsumed: dailyCaloriesResult.totalCaloriesConsumed,
+      totalCaloriesConsumed:
+        dailyCaloriesResult[
+          FOOD_DAILY_SUMMARY_FIELDS.TOTAL_CALORIES_CONSUMED
+        ],
       totalCaloriesRequiredPerDay:
         user?.[USER_FIELDS.TOTAL_CALORIES_REQUIRED_PER_DAY],
     });

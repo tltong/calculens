@@ -36,6 +36,22 @@ const FOOD_LOG_FIELDS = {
   UPDATED_AT: "updatedAt",
 };
 
+const FOOD_DAILY_SUMMARY_FIELDS = {
+  USER_DOCUMENT_ID: "userDocumentId",
+  FOOD_LOG_DATE: "foodLogDate",
+  TOTAL_CALORIES_CONSUMED: "totalCaloriesConsumed",
+  FOOD_PHOTO_COUNT: "foodPhotoCount",
+  COUNTED_FOOD_PHOTO_COUNT: "countedFoodPhotoCount",
+  SKIPPED_FOOD_PHOTO_COUNT: "skippedFoodPhotoCount",
+};
+
+const FOOD_PHOTO_PROCESSING_RESULT_FIELDS = {
+  SUCCESS: "success",
+  ERROR_CODE: "errorCode",
+  FOOD_EXTRACTION: "foodExtraction",
+  CALORIE_ESTIMATION: "calorieEstimation",
+};
+
 const FOOD_LOG_SUBCOLLECTIONS = {
   ENTRIES: "entries",
 };
@@ -169,6 +185,8 @@ module.exports = {
   FOOD_ITEM_FIELDS,
   CALORIE_RANGE_FIELDS,
   FOOD_LOG_FIELDS,
+  FOOD_DAILY_SUMMARY_FIELDS,
+  FOOD_PHOTO_PROCESSING_RESULT_FIELDS,
   FOOD_LOG_SUBCOLLECTIONS,
   FOOD_LOG_PROCESSING_STATUS,
   FOOD_LOG_PROCESSING_ERROR_CODES,

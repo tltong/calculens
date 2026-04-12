@@ -130,6 +130,41 @@
       word-break: break-word;
     }
 
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #fff;
+      margin-top: 12px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 620px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      vertical-align: middle;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #374151;
+      font-size: 12px;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
     .muted {
       color: #666;
     }
@@ -184,73 +219,62 @@
 
       <div id="app-status" class="status">Initializing...</div>
 
-      <div class="summary-grid">
-        <div class="summary-item">
-          <div class="item-label">Name</div>
-          <div id="user-name" class="item-value">-</div>
-        </div>
-        <div class="summary-item">
-          <div class="item-label">Phone Number</div>
-          <div id="user-phone" class="item-value">-</div>
-        </div>
-        <div class="summary-item">
-          <div class="item-label">Analysis Status</div>
-          <div id="analysis-status" class="item-value">-</div>
-        </div>
-        <div class="summary-item">
-          <div class="item-label">Completed</div>
-          <div id="analysis-completed-at" class="item-value">-</div>
-        </div>
+      <h2>Last 7 Days</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Food Log Date</th>
+              <th>Calories Consumed</th>
+              <th>Surplus/Deficit</th>
+              <th>Photos Uploaded</th>
+              <th>Included In Average</th>
+            </tr>
+          </thead>
+          <tbody id="daily-calories-table-body"></tbody>
+        </table>
       </div>
 
-      <h2>Results</h2>
+      <h2>Calorie Intake</h2>
       <div class="metrics-grid">
         <div class="metric-item">
-          <div class="item-label">Food Log Date</div>
-          <div id="result-food-log-date" class="item-value">-</div>
+          <div class="item-label">Daily Calories Required</div>
+          <div id="daily-calories-required" class="item-value">-</div>
         </div>
         <div class="metric-item">
-          <div class="item-label">Photos Uploaded</div>
-          <div id="result-photo-count" class="item-value">-</div>
+          <div class="item-label">Average Daily Consumption</div>
+          <div id="intake-daily-average-consumed" class="item-value">-</div>
         </div>
         <div class="metric-item">
-          <div class="item-label">Counted Photos</div>
-          <div id="result-counted-photo-count" class="item-value">-</div>
-        </div>
-        <div class="metric-item">
-          <div class="item-label">Skipped Photos</div>
-          <div id="result-skipped-photo-count" class="item-value">-</div>
-        </div>
-        <div class="metric-item">
-          <div class="item-label">Total Calories Consumed</div>
-          <div id="result-total-calories" class="item-value">-</div>
+          <div class="item-label">Average Daily Surplus/Deficit</div>
+          <div id="daily-surplus-deficit" class="item-value">-</div>
         </div>
       </div>
 
-      <h2>Run Details</h2>
-      <div class="summary-grid">
-        <div class="summary-item">
-          <div class="item-label">Analysis Run ID</div>
-          <div id="analysis-run-id" class="item-value">-</div>
+      <h2>Weight Change Projection</h2>
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <div class="item-label">Current Weight</div>
+          <div id="current-weight" class="item-value">-</div>
         </div>
-        <div class="summary-item">
-          <div class="item-label">Type</div>
-          <div id="analysis-type" class="item-value">-</div>
-        </div>
-        <div class="summary-item">
-          <div class="item-label">Requested</div>
-          <div id="analysis-requested-at" class="item-value">-</div>
-        </div>
-        <div class="summary-item">
-          <div class="item-label">Started</div>
-          <div id="analysis-started-at" class="item-value">-</div>
-        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th>Projected Weight Change</th>
+              <th>Projected Weight</th>
+            </tr>
+          </thead>
+          <tbody id="weight-projection-table-body"></tbody>
+        </table>
       </div>
 
       <div id="analysis-error" class="error-box"></div>
     </div>
   </div>
 
-  <script type="module" src="/pages/admin/user_analysis.js?v=user-analysis-result-1"></script>
+  <script type="module" src="/pages/admin/user_analysis.js?v=user-analysis-result-5"></script>
 </body>
 </html>

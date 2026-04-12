@@ -15,6 +15,7 @@ import {
   USER_ANALYSIS_FIELDS,
   USER_ANALYSIS_ERROR_FIELDS,
   USER_ANALYSIS_STATUSES,
+  USER_ANALYSIS_PAGE_QUERY_PARAMS,
   buildFoodSummaryAnalysisRunData
 } from "/config/firebase/user_analysis_schema.js";
 
@@ -119,8 +120,14 @@ function buildEditProfileUrl(userId) {
 
 function buildUserAnalysisUrl(userId, analysisRunId) {
   const userAnalysisUrl = new URL(USER_ANALYSIS_PAGE_PATH, window.location.origin);
-  userAnalysisUrl.searchParams.set("userId", userId);
-  userAnalysisUrl.searchParams.set("analysisRunId", analysisRunId);
+  userAnalysisUrl.searchParams.set(
+    USER_ANALYSIS_PAGE_QUERY_PARAMS.USER_ID,
+    userId
+  );
+  userAnalysisUrl.searchParams.set(
+    USER_ANALYSIS_PAGE_QUERY_PARAMS.ANALYSIS_RUN_ID,
+    analysisRunId
+  );
 
   return userAnalysisUrl.toString();
 }

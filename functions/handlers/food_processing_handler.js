@@ -13,8 +13,11 @@ const {
   FOOD_ANALYSIS_FIELDS,
   FOOD_ITEM_FIELDS,
   FOOD_LOG_FIELDS,
+  FOOD_DAILY_SUMMARY_FIELDS,
+  FOOD_PHOTO_PROCESSING_RESULT_FIELDS,
   FOOD_LOG_SUBCOLLECTIONS,
   FOOD_LOG_PROCESSING_STATUS,
+  FOOD_LOG_PROCESSING_ERROR_CODES,
 } = require("../config/firebase/food_data_schema");
 const {
   buildFoodLogDateTimeStrings,
@@ -60,10 +63,12 @@ class FoodProcessingHandler {
 
     if (foodItems.length === 0) {
       return {
-        success: false,
-        errorCode: "PHOTO_IS_NOT_FOOD",
-        foodExtraction: foodExtractionResult,
-        calorieEstimation: null,
+        [FOOD_PHOTO_PROCESSING_RESULT_FIELDS.SUCCESS]: false,
+        [FOOD_PHOTO_PROCESSING_RESULT_FIELDS.ERROR_CODE]:
+          FOOD_LOG_PROCESSING_ERROR_CODES.PHOTO_IS_NOT_FOOD,
+        [FOOD_PHOTO_PROCESSING_RESULT_FIELDS.FOOD_EXTRACTION]:
+          foodExtractionResult,
+        [FOOD_PHOTO_PROCESSING_RESULT_FIELDS.CALORIE_ESTIMATION]: null,
       };
     }
 
@@ -73,10 +78,12 @@ class FoodProcessingHandler {
       });
 
     return {
-      success: true,
-      errorCode: null,
-      foodExtraction: foodExtractionResult,
-      calorieEstimation: calorieEstimationResult,
+      [FOOD_PHOTO_PROCESSING_RESULT_FIELDS.SUCCESS]: true,
+      [FOOD_PHOTO_PROCESSING_RESULT_FIELDS.ERROR_CODE]: null,
+      [FOOD_PHOTO_PROCESSING_RESULT_FIELDS.FOOD_EXTRACTION]:
+        foodExtractionResult,
+      [FOOD_PHOTO_PROCESSING_RESULT_FIELDS.CALORIE_ESTIMATION]:
+        calorieEstimationResult,
     };
   }
 
@@ -183,12 +190,15 @@ class FoodProcessingHandler {
     });
 
     return {
-      userDocumentId,
-      foodLogDate,
-      totalCaloriesConsumed,
-      foodPhotoCount: entriesSnapshot.size,
-      countedFoodPhotoCount,
-      skippedFoodPhotoCount: entriesSnapshot.size - countedFoodPhotoCount,
+      [FOOD_DAILY_SUMMARY_FIELDS.USER_DOCUMENT_ID]: userDocumentId,
+      [FOOD_DAILY_SUMMARY_FIELDS.FOOD_LOG_DATE]: foodLogDate,
+      [FOOD_DAILY_SUMMARY_FIELDS.TOTAL_CALORIES_CONSUMED]:
+        totalCaloriesConsumed,
+      [FOOD_DAILY_SUMMARY_FIELDS.FOOD_PHOTO_COUNT]: entriesSnapshot.size,
+      [FOOD_DAILY_SUMMARY_FIELDS.COUNTED_FOOD_PHOTO_COUNT]:
+        countedFoodPhotoCount,
+      [FOOD_DAILY_SUMMARY_FIELDS.SKIPPED_FOOD_PHOTO_COUNT]:
+        entriesSnapshot.size - countedFoodPhotoCount,
     };
   }
 

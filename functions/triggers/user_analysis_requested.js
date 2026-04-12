@@ -8,6 +8,7 @@ const {
   USER_ANALYSIS_FIELDS,
   USER_ANALYSIS_ERROR_FIELDS,
   USER_ANALYSIS_STATUSES,
+  USER_ANALYSIS_TRIGGER_PARAMS,
   USER_ANALYSIS_TRIGGER_PATHS,
 } = require("../config/firebase/user_analysis_schema");
 
@@ -23,8 +24,10 @@ const userAnalysisRequested = onDocumentCreated(
 
     const analysisRun = snapshot.data() || {};
     const status = analysisRun[USER_ANALYSIS_FIELDS.STATUS];
-    const userDocumentId = event.params?.userDocumentId;
-    const analysisRunId = event.params?.analysisRunId;
+    const userDocumentId =
+      event.params?.[USER_ANALYSIS_TRIGGER_PARAMS.USER_DOCUMENT_ID];
+    const analysisRunId =
+      event.params?.[USER_ANALYSIS_TRIGGER_PARAMS.ANALYSIS_RUN_ID];
 
     if (status !== USER_ANALYSIS_STATUSES.QUEUED) {
       console.log(
