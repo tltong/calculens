@@ -34,7 +34,9 @@ const FIREBASE_USER_LINKS = {
   REGISTRATION_URL_TEMPLATE:
     "https://calculens-35ead.web.app/pages/registration/registration.html?p{phoneNumber}",
   EDIT_PROFILE_URL_TEMPLATE:
-    "https://calculens-35ead.web.app/pages/edit_profile/edit_profile.html?userId={userDocumentId}"
+    "https://calculens-35ead.web.app/pages/edit_profile/edit_profile.html?userId={userDocumentId}",
+  USER_ANALYSIS_URL_TEMPLATE:
+    "https://calculens-35ead.web.app/pages/user_analysis/user_analysis.html?userId={userDocumentId}&analysisRunId={analysisRunId}"
 };
 
 /**

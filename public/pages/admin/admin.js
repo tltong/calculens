@@ -31,7 +31,7 @@ import {
 } from "/utils/firebase/firebase_ops.js";
 
 const EDIT_PROFILE_PAGE_PATH = "/pages/edit_profile/edit_profile.html";
-const USER_ANALYSIS_PAGE_PATH = "/pages/admin/user_analysis.html";
+const USER_ANALYSIS_PAGE_PATH = "/pages/user_analysis/user_analysis.html";
 
 const appStatusEl = document.getElementById("app-status");
 const usersSummaryEl = document.getElementById("users-summary");

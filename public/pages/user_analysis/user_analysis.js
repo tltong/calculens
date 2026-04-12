@@ -1,4 +1,4 @@
-// public/pages/admin/user_analysis.js
+// public/pages/user_analysis/user_analysis.js
 
 import {
   initUserHandler,
