@@ -14,10 +14,16 @@ import {
   USER_ANALYSIS_SUBCOLLECTIONS,
   USER_ANALYSIS_FIELDS,
   USER_ANALYSIS_ERROR_FIELDS,
-  USER_ANALYSIS_STATUSES,
-  USER_ANALYSIS_PAGE_QUERY_PARAMS,
-  buildFoodSummaryAnalysisRunData
+  USER_ANALYSIS_STATUSES
 } from "/config/firebase/user_analysis_schema.js";
+
+import {
+  USER_ANALYSIS_PAGE_QUERY_PARAMS
+} from "/config/admin/user_analysis_page.js";
+
+import {
+  buildFoodSummaryAnalysisRunData
+} from "/handlers/user_analysis_handler.js";
 
 import {
   addSubcollectionDocument,

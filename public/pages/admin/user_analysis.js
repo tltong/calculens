@@ -16,10 +16,14 @@ import {
   USER_ANALYSIS_RESULT_FIELDS,
   USER_ANALYSIS_DAILY_RESULT_FIELDS,
   USER_ANALYSIS_WEIGHT_PROJECTION_FIELDS,
+  USER_ANALYSIS_FOOD_CONSUMPTION_REVIEW_FIELDS,
   USER_ANALYSIS_ERROR_FIELDS,
-  USER_ANALYSIS_STATUSES,
-  USER_ANALYSIS_PAGE_QUERY_PARAMS
+  USER_ANALYSIS_STATUSES
 } from "/config/firebase/user_analysis_schema.js";
+
+import {
+  USER_ANALYSIS_PAGE_QUERY_PARAMS
+} from "/config/admin/user_analysis_page.js";
 
 import {
   getSubcollectionDocument,
@@ -39,6 +43,10 @@ const dailyCaloriesRequiredEl = document.getElementById("daily-calories-required
 const intakeDailyAverageConsumedEl =
   document.getElementById("intake-daily-average-consumed");
 const dailySurplusDeficitEl = document.getElementById("daily-surplus-deficit");
+const foodConsumptionAssessmentEl =
+  document.getElementById("food-consumption-assessment");
+const foodConsumptionImprovementsEl =
+  document.getElementById("food-consumption-improvements");
 const currentWeightEl = document.getElementById("current-weight");
 const analysisErrorEl = document.getElementById("analysis-error");
 
@@ -113,6 +121,8 @@ function clearResult() {
   setText(dailyCaloriesRequiredEl, "-");
   setText(intakeDailyAverageConsumedEl, "-");
   setText(dailySurplusDeficitEl, "-");
+  setText(foodConsumptionAssessmentEl, "-");
+  renderList(foodConsumptionImprovementsEl, []);
   setText(currentWeightEl, "-");
 
   if (dailyCaloriesTableBodyEl) {
@@ -237,6 +247,23 @@ function renderCalorieIntake(analysisRun) {
   );
 }
 
+function renderFoodConsumptionReview(analysisRun) {
+  const result = analysisRun?.[USER_ANALYSIS_FIELDS.RESULT] || {};
+  const review =
+    result[USER_ANALYSIS_RESULT_FIELDS.FOOD_CONSUMPTION_REVIEW] || {};
+  const assessment =
+    review[
+      USER_ANALYSIS_FOOD_CONSUMPTION_REVIEW_FIELDS.ASSESSMENT
+    ];
+  const suggestedImprovements =
+    review[
+      USER_ANALYSIS_FOOD_CONSUMPTION_REVIEW_FIELDS.SUGGESTED_IMPROVEMENTS
+    ];
+
+  setText(foodConsumptionAssessmentEl, formatValue(assessment));
+  renderList(foodConsumptionImprovementsEl, suggestedImprovements);
+}
+
 function renderWeightChangeProjections(analysisRun) {
   const result = analysisRun?.[USER_ANALYSIS_FIELDS.RESULT] || {};
   const currentWeightKg = toFiniteNumber(
@@ -293,6 +320,25 @@ function renderWeightChangeProjections(analysisRun) {
     );
 
     weightProjectionTableBodyEl.appendChild(row);
+  });
+}
+
+function renderList(listElement, values) {
+  if (!listElement) {
+    return;
+  }
+
+  listElement.replaceChildren();
+
+  const normalizedValues = Array.isArray(values)
+    ? values.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+  const listValues = normalizedValues.length > 0 ? normalizedValues : ["-"];
+
+  listValues.forEach((value) => {
+    const item = document.createElement("li");
+    item.textContent = value;
+    listElement.appendChild(item);
   });
 }
 
@@ -370,6 +416,7 @@ function renderAnalysisRun(analysisRun) {
   if (status === USER_ANALYSIS_STATUSES.COMPLETED) {
     renderDailyCaloriesSummary(analysisRun);
     renderCalorieIntake(analysisRun);
+    renderFoodConsumptionReview(analysisRun);
     renderWeightChangeProjections(analysisRun);
     setStatus("Analysis complete.");
   } else {

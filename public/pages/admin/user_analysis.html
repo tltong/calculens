@@ -165,6 +165,25 @@
       border-bottom: none;
     }
 
+    .review-block {
+      margin: 0 0 14px;
+    }
+
+    .review-text {
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .review-list {
+      margin: 0;
+      padding-left: 20px;
+      line-height: 1.5;
+    }
+
+    .review-list li + li {
+      margin-top: 6px;
+    }
+
     .muted {
       color: #666;
     }
@@ -251,6 +270,18 @@
         </div>
       </div>
 
+      <h2>Food Consumption Review</h2>
+      <div class="review-block">
+        <div class="item-label">Eating Habit Assessment</div>
+        <p id="food-consumption-assessment" class="review-text">-</p>
+      </div>
+      <div class="review-block">
+        <div class="item-label">Suggested Improvements</div>
+        <ul id="food-consumption-improvements" class="review-list">
+          <li>-</li>
+        </ul>
+      </div>
+
       <h2>Weight Change Projection</h2>
       <div class="metrics-grid">
         <div class="metric-item">
@@ -275,6 +306,6 @@
     </div>
   </div>
 
-  <script type="module" src="/pages/admin/user_analysis.js?v=user-analysis-result-5"></script>
+  <script type="module" src="/pages/admin/user_analysis.js?v=user-analysis-result-6"></script>
 </body>
 </html>
