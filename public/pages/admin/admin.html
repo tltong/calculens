@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Calculens - Admin Users</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-store" />
   <style>
     * {
       box-sizing: border-box;
@@ -56,6 +57,37 @@
       background: #eef3ff;
       font-size: 14px;
       line-height: 1.5;
+    }
+
+    .access-panel {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    .access-form {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .form-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+    }
+
+    input[type="password"] {
+      min-height: 42px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+
+    .access-error {
+      color: #b42318;
+      font-size: 13px;
+      line-height: 1.4;
     }
 
     .actions {
@@ -219,7 +251,19 @@
 </head>
 <body>
   <div class="page">
-    <div class="panel">
+    <div id="admin-access-panel" class="panel access-panel">
+      <h1>Admin Access</h1>
+      <p class="subtitle">Enter password to continue.</p>
+
+      <form id="admin-access-form" class="access-form">
+        <label class="form-label" for="admin-password">Password</label>
+        <input id="admin-password" type="password" inputmode="numeric" autocomplete="current-password" />
+        <button type="submit">Enter</button>
+        <div id="admin-access-error" class="access-error hidden">Incorrect password.</div>
+      </form>
+    </div>
+
+    <div id="admin-users-panel" class="panel hidden">
       <div class="header-row">
         <div>
           <h1>Registered Users</h1>
@@ -258,6 +302,6 @@
     </div>
   </div>
 
-  <script type="module" src="/pages/admin/admin.js?v=admin-users-3"></script>
+  <script type="module" src="/pages/admin/admin.js?v=admin-users-5"></script>
 </body>
 </html>

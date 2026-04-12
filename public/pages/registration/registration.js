@@ -14,7 +14,6 @@ import {
 
 const appStatusEl = document.getElementById("app-status");
 const formEl = document.getElementById("registration-form");
-const fillTestDataBtn = document.getElementById("fill-test-data-btn");
 const debugOutputEl = document.getElementById("debug-output");
 
 const gmtSelectEl = document.getElementById("gmt");
@@ -234,64 +233,6 @@ function getFormData() {
   };
 }
 
-function fillTestData() {
-  const nameEl = document.getElementById("name");
-  const dobEl = document.getElementById("dob");
-  const genderEl = document.getElementById("gender");
-  const heightCmEl = document.getElementById("heightCm");
-  const weightKgEl = document.getElementById("weightKg");
-  const stepsPerDayEl = document.getElementById("stepsPerDay");
-  const bodyFatPercentageEl = document.getElementById("bodyFatPercentage");
-
-  if (nameEl) {
-    nameEl.value = "John Doe";
-  }
-
-  if (phoneNumberEl && phoneNumberEl.dataset.locked !== "true") {
-    phoneNumberEl.value = "+60123456789";
-  }
-
-  if (dobEl) {
-    dobEl.value = "1990-01-15";
-  }
-
-  if (genderEl) {
-    genderEl.value = "male";
-  }
-
-  if (gmtSelectEl && !gmtSelectEl.value) {
-    gmtSelectEl.value = "GMT+08:00";
-  }
-
-  if (heightCmEl) {
-    heightCmEl.value = "175";
-  }
-
-  if (weightKgEl) {
-    weightKgEl.value = "70";
-  }
-
-  if (stepsPerDayEl) {
-    stepsPerDayEl.value = "8000";
-  }
-
-  if (bodyFatPercentageEl) {
-    bodyFatPercentageEl.value = "";
-  }
-
-  if (exerciseFrequencyEl) {
-    exerciseFrequencyEl.value = "4";
-  }
-
-  if (exerciseDurationMinutesEl) {
-    exerciseDurationMinutesEl.value = "45";
-  }
-
-  if (exerciseIntensityEl) {
-    exerciseIntensityEl.value = "moderate";
-  }
-}
-
 function buildRegistrationCompletePageUrl(result) {
   const completePageUrl = new URL(
     REGISTRATION_COMPLETE_PAGE_PATH,
@@ -407,7 +348,6 @@ async function initializePage() {
   }
 }
 
-fillTestDataBtn?.addEventListener("click", fillTestData);
 formEl?.addEventListener("submit", handleSubmit);
 
 initializePage();

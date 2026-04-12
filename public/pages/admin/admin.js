@@ -22,6 +22,10 @@ import {
 } from "/config/admin/user_analysis_page.js";
 
 import {
+  ADMIN_ACCESS
+} from "/config/admin/admin_access.js";
+
+import {
   buildFoodSummaryAnalysisRunData
 } from "/handlers/user_analysis_handler.js";
 
@@ -37,6 +41,11 @@ import {
 const EDIT_PROFILE_PAGE_PATH = "/pages/edit_profile/edit_profile.html";
 const USER_ANALYSIS_PAGE_PATH = "/pages/user_analysis/user_analysis.html";
 
+const adminAccessPanelEl = document.getElementById("admin-access-panel");
+const adminUsersPanelEl = document.getElementById("admin-users-panel");
+const adminAccessFormEl = document.getElementById("admin-access-form");
+const adminPasswordInputEl = document.getElementById("admin-password");
+const adminAccessErrorEl = document.getElementById("admin-access-error");
 const appStatusEl = document.getElementById("app-status");
 const usersSummaryEl = document.getElementById("users-summary");
 const refreshUsersBtn = document.getElementById("refresh-users-btn");
@@ -69,6 +78,38 @@ function setVisible(element, isVisible) {
   }
 
   element.classList.toggle("hidden", !isVisible);
+}
+
+function setAdminAccessState(isGranted) {
+  setVisible(adminAccessPanelEl, !isGranted);
+  setVisible(adminUsersPanelEl, isGranted);
+}
+
+function handleAdminAccessSubmit(event) {
+  event.preventDefault();
+
+  const password = String(adminPasswordInputEl?.value || "").trim();
+
+  if (password !== ADMIN_ACCESS.PASSWORD) {
+    setVisible(adminAccessErrorEl, true);
+
+    if (adminPasswordInputEl) {
+      adminPasswordInputEl.value = "";
+      adminPasswordInputEl.focus();
+    }
+
+    return;
+  }
+
+  setVisible(adminAccessErrorEl, false);
+  setAdminAccessState(true);
+  initializePage();
+}
+
+function initializeAdminAccess() {
+  adminAccessFormEl?.addEventListener("submit", handleAdminAccessSubmit);
+  setAdminAccessState(false);
+  adminPasswordInputEl?.focus();
 }
 
 function clearAnalysisRunListeners() {
@@ -453,4 +494,4 @@ refreshUsersBtn?.addEventListener("click", loadRegisteredUsers);
 
 window.addEventListener("beforeunload", clearAnalysisRunListeners);
 
-initializePage();
+initializeAdminAccess();
